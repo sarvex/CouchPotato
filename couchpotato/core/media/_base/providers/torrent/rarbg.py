@@ -36,18 +36,24 @@ class Base(TorrentMagnetProvider):
         self.getToken()
 
         if (self._token != 0) and (movieyear == 0 or movieyear <= curryear):
-            data = self.getJsonData(self.urls['search'] % (self._token, movieid, self.conf('min_seeders'),
-                                                           self.conf('min_leechers'), self.conf('ranked_only')), headers = self.getRequestHeaders())
-
-            if data:
+            if data := self.getJsonData(
+                self.urls['search']
+                % (
+                    self._token,
+                    movieid,
+                    self.conf('min_seeders'),
+                    self.conf('min_leechers'),
+                    self.conf('ranked_only'),
+                ),
+                headers=self.getRequestHeaders(),
+            ):
                 if 'error_code' in data:
                     if data['error'] == 'No results found':
                         log.debug('RARBG: No results returned from Rarbg')
+                    elif data['error_code'] == 10:
+                        log.error(data['error'], movieid)
                     else:
-                        if data['error_code'] == 10:
-                            log.error(data['error'], movieid)
-                        else:
-                            log.error('RARBG: There is an error in the returned JSON: %s', data['error'])
+                        log.error('RARBG: There is an error in the returned JSON: %s', data['error'])
                 else:
                     hasresults = 1
 
@@ -73,32 +79,39 @@ class Base(TorrentMagnetProvider):
 
                             torrentscore = self.conf('extra_score')
                             seeders = tryInt(result['seeders'])
-                            torrent_desc = '/ %s / %s / %s / %s seeders' % (releasegroup, resolution, encoding, seeders)
+                            torrent_desc = f'/ {releasegroup} / {resolution} / {encoding} / {seeders} seeders'
 
                             if seeders == 0:
                                 torrentscore = 0
 
-                            sliceyear = result['pubdate'][0:4]
+                            sliceyear = result['pubdate'][:4]
                             year = tryInt(sliceyear)
 
-                            results.append({
-                                'id': random.randint(100, 9999),
-                                'name': re.sub('[^A-Za-z0-9\-_ \(\).]+', '', '%s (%s) %s' % (name, year, torrent_desc)),
-                                'url': result['download'],
-                                'detail_url': result['info_page'],
-                                'size': tryInt(result['size']/1048576),  # rarbg sends in bytes
-                                'seeders': tryInt(result['seeders']),
-                                'leechers': tryInt(result['leechers']),
-                                'age': tryInt(age),
-                                'score': torrentscore
-                            })
+                            results.append(
+                                {
+                                    'id': random.randint(100, 9999),
+                                    'name': re.sub(
+                                        '[^A-Za-z0-9\-_ \(\).]+',
+                                        '',
+                                        f'{name} ({year}) {torrent_desc}',
+                                    ),
+                                    'url': result['download'],
+                                    'detail_url': result['info_page'],
+                                    'size': tryInt(result['size'] / 1048576),
+                                    'seeders': tryInt(result['seeders']),
+                                    'leechers': tryInt(result['leechers']),
+                                    'age': tryInt(age),
+                                    'score': torrentscore,
+                                }
+                            )
 
                 except RuntimeError:
                     log.error('RARBG: Failed getting results from %s: %s', (self.getName(), traceback.format_exc()))
 
     def getToken(self):
-        tokendata = self.getJsonData(self.urls['token'], cache_timeout = 900, headers = self.getRequestHeaders())
-        if tokendata:
+        if tokendata := self.getJsonData(
+            self.urls['token'], cache_timeout=900, headers=self.getRequestHeaders()
+        ):
             try:
                 token = tokendata['token']
                 if self._token != token:
@@ -165,8 +178,7 @@ class Base(TorrentMagnetProvider):
         if s:
             source = 'BluRay-Full'
 
-        return_info = [codec, resolution, source]
-        return return_info
+        return [codec, resolution, source]
 
 config = [{
     'name': 'rarbg',

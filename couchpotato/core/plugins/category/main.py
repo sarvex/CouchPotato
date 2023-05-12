@@ -89,13 +89,10 @@ class CategoryPlugin(Plugin):
         try:
             db = get_db()
 
-            order = 0
-            for category_id in kwargs.get('ids', []):
+            for order, category_id in enumerate(kwargs.get('ids', [])):
                 c = db.get('id', category_id)
                 c['order'] = order
                 db.update(c)
-
-                order += 1
 
             return {
                 'success': True
@@ -140,9 +137,10 @@ class CategoryPlugin(Plugin):
 
         try:
             db = get_db()
-            movies = [x['doc'] for x in db.get_many('category_media', category_id, with_doc = True)]
-
-            if len(movies) > 0:
+            if movies := [
+                x['doc']
+                for x in db.get_many('category_media', category_id, with_doc=True)
+            ]:
                 for movie in movies:
                     movie['category_id'] = None
                     db.update(movie)

@@ -84,10 +84,7 @@ class MovieResultModifier(Plugin):
             # Merge dicts
             temp[imdb] = mergeDicts(temp[imdb], item)
 
-        # Make it a list again
-        temp_list = [temp[x] for x in order]
-
-        return temp_list
+        return [temp[x] for x in order]
 
     def getLibraryTags(self, imdb):
 
@@ -102,7 +99,7 @@ class MovieResultModifier(Plugin):
 
             media = None
             try:
-                media = db.get('media', 'imdb-%s' % imdb, with_doc = True)['doc']
+                media = db.get('media', f'imdb-{imdb}', with_doc = True)['doc']
             except RecordNotFound:
                 pass
 

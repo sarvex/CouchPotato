@@ -37,7 +37,7 @@ def asbool(obj):
             return True
         if obj in ('false', 'no', 'off', 'n', 'f', '0'):
             return False
-        raise ValueError('Unable to interpret value "%s" as boolean' % obj)
+        raise ValueError(f'Unable to interpret value "{obj}" as boolean')
     return bool(obj)
 
 
@@ -70,7 +70,7 @@ def convert_to_datetime(input):
         values = [(k, int(v or 0)) for k, v in m.groupdict().items()]
         values = dict(values)
         return datetime(**values)
-    raise TypeError('Unsupported input type: %s' % type(input))
+    raise TypeError(f'Unsupported input type: {type(input)}')
 
 
 def timedelta_seconds(delta):
@@ -129,7 +129,7 @@ def combine_opts(global_config, prefix, local_config={}):
         if key.startswith(prefix):
             key = key[prefixlen:]
             subconf[key] = value
-    subconf.update(local_config)
+    subconf |= local_config
     return subconf
 
 
@@ -143,17 +143,12 @@ def get_callable_name(func):
         if isinstance(f_self, type):
             # class method
             clsname = getattr(f_self, '__qualname__', None) or f_self.__name__
-            return '%s.%s' % (clsname, func.__name__)
+            return f'{clsname}.{func.__name__}'
         # bound method
-        return '%s.%s' % (f_self.__class__.__name__, func.__name__)
+        return f'{f_self.__class__.__name__}.{func.__name__}'
 
     if hasattr(func, '__call__'):
-        if hasattr(func, '__name__'):
-            # function, unbound method or a class with a __call__ method
-            return func.__name__
-        # instance of a class with a __call__ method
-        return func.__class__.__name__
-
+        return func.__name__ if hasattr(func, '__name__') else func.__class__.__name__
     raise TypeError('Unable to determine a name for %s -- '
                     'maybe it is not a callable?' % repr(func))
 
@@ -162,13 +157,13 @@ def obj_to_ref(obj):
     """
     Returns the path to the given object.
     """
-    ref = '%s:%s' % (obj.__module__, get_callable_name(obj))
+    ref = f'{obj.__module__}:{get_callable_name(obj)}'
     try:
         obj2 = ref_to_obj(ref)
         if obj != obj2:
             raise ValueError
     except Exception:
-        raise ValueError('Cannot determine the reference to %s' % repr(obj))
+        raise ValueError(f'Cannot determine the reference to {repr(obj)}')
 
     return ref
 
@@ -179,7 +174,7 @@ def ref_to_obj(ref):
     """
     if not isinstance(ref, basestring):
         raise TypeError('References must be strings')
-    if not ':' in ref:
+    if ':' not in ref:
         raise ValueError('Invalid reference')
 
     modulename, rest = ref.split(':', 1)
@@ -203,9 +198,7 @@ def maybe_ref(ref):
     Returns the object that the given reference points to, if it is indeed
     a reference. If it is not a reference, the object is returned as-is.
     """
-    if not isinstance(ref, str):
-        return ref
-    return ref_to_obj(ref)
+    return ref if not isinstance(ref, str) else ref_to_obj(ref)
 
 
 def to_unicode(string, encoding='ascii'):

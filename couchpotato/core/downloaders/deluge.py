@@ -117,9 +117,7 @@ class Deluge(DownloaderBase):
         """ Check if connection works
         :return: bool
         """
-        if self.connect(True) and self.drpc.test():
-            return True
-        return False
+        return bool(self.connect(True) and self.drpc.test())
 
     def getAllDownloadStatus(self, ids):
         """ Get status of all active downloads
@@ -146,7 +144,7 @@ class Deluge(DownloaderBase):
         for torrent_id in queue:
             torrent = queue[torrent_id]
 
-            if not 'hash' in torrent:
+            if 'hash' not in torrent:
                 # When given a list of ids, deluge will return an empty item for a non-existant torrent.
                 continue
 
@@ -158,23 +156,31 @@ class Deluge(DownloaderBase):
             # If an user opts to seed a torrent forever (usually associated to private trackers usage), stop_ratio will be 0 or -1 (depending on Deluge version).
             # In this scenario the status of the torrent would never change from BUSY to SEEDING.
             # The last check takes care of this case.
-            if torrent['is_seed'] and ((tryFloat(torrent['ratio']) < tryFloat(torrent['stop_ratio'])) or (tryFloat(torrent['stop_ratio']) < 0)):
-                # We have torrent['seeding_time'] to work out what the seeding time is, but we do not
-                # have access to the downloader seed_time, as with deluge we have no way to pass it
-                # when the torrent is added. So Deluge will only look at the ratio.
-                # See above comment in download().
-                status = 'seeding'
-            elif torrent['is_seed'] and torrent['is_finished'] and torrent['paused'] and torrent['state'] == 'Paused':
-                status = 'completed'
+            if torrent['is_seed']:
+                if (
+                    tryFloat(torrent['ratio']) < tryFloat(torrent['stop_ratio'])
+                    or tryFloat(torrent['stop_ratio']) < 0
+                ):
+                    # We have torrent['seeding_time'] to work out what the seeding time is, but we do not
+                    # have access to the downloader seed_time, as with deluge we have no way to pass it
+                    # when the torrent is added. So Deluge will only look at the ratio.
+                    # See above comment in download().
+                    status = 'seeding'
+                elif (
+                    torrent['is_finished']
+                    and torrent['paused']
+                    and torrent['state'] == 'Paused'
+                ):
+                    status = 'completed'
 
             download_dir = sp(torrent['save_path'])
             if torrent['move_on_completed']:
                 download_dir = torrent['move_completed_path']
 
-            torrent_files = []
-            for file_item in torrent['files']:
-                torrent_files.append(sp(os.path.join(download_dir, file_item['path'])))
-
+            torrent_files = [
+                sp(os.path.join(download_dir, file_item['path']))
+                for file_item in torrent['files']
+            ]
             release_downloads.append({
                 'id': torrent['hash'],
                 'name': torrent['name'],
@@ -329,10 +335,7 @@ class DelugeRPC(object):
 
         torrent_hash = torrent_hash.lower()
         torrent_check = self.client.core.get_torrent_status(torrent_hash, {})
-        if torrent_check['hash']:
-            return torrent_hash
-
-        return False
+        return torrent_hash if torrent_check['hash'] else False
 
 
 config = [{

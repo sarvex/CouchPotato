@@ -28,7 +28,10 @@ class Trailer(Plugin):
         for trailer in trailers.get(self.conf('quality'), []):
 
             ext = getExt(trailer)
-            filename = self.conf('name').replace('<filename>', group['filename']) + ('.%s' % ('mp4' if len(ext) > 5 else ext))
+            filename = (
+                self.conf('name').replace('<filename>', group['filename'])
+                + f".{'mp4' if len(ext) > 5 else ext}"
+            )
             destination = os.path.join(group['destination_dir'], filename)
             if not os.path.isfile(destination):
                 trailer_file = fireEvent('file.download', url = trailer, dest = destination, urlopen_kwargs = {'headers': {'User-Agent': 'Quicktime'}}, single = True)

@@ -23,65 +23,76 @@ class Base(TorrentProvider):
 
     def _search(self, movie, quality, results):
 
-        data = self.getHTMLData(self.urls['search'] % (self.conf('passkey'), getIdentifier(movie), self.conf('only_internal')))
+        if not (
+            data := self.getHTMLData(
+                self.urls['search']
+                % (
+                    self.conf('passkey'),
+                    getIdentifier(movie),
+                    self.conf('only_internal'),
+                )
+            )
+        ):
+            return
+        if self.login_fail_msg in data:
+            self.disableAccount()
+            return
 
-        if data:
-            if self.login_fail_msg in data:
-                self.disableAccount()
+        try:
+            soup = BeautifulSoup(data)
+
+            if soup.find('error'):
+                log.info(soup.find('error').get_text())
                 return
 
-            try:
-                soup = BeautifulSoup(data)
+            authkey = soup.find('authkey').get_text()
+            entries = soup.find_all('torrent')
 
-                if soup.find('error'):
-                    log.info(soup.find('error').get_text())
-                    return
+            for entry in entries:
 
-                authkey = soup.find('authkey').get_text()
-                entries = soup.find_all('torrent')
+                torrentscore = 0
+                torrent_id = entry.find('id').get_text()
+                name = entry.find('name').get_text()
+                year = entry.find('year').get_text()
+                releasegroup = entry.find('releasegroup').get_text()
+                resolution = entry.find('resolution').get_text()
+                encoding = entry.find('encoding').get_text()
+                freeleech = entry.find('freeleech').get_text()
+                media = entry.find('media').get_text()
+                audioformat = entry.find('audioformat').get_text()
 
-                for entry in entries:
+                # skip audio channel only releases
+                if resolution == '':
+                    continue
 
-                    torrentscore = 0
-                    torrent_id = entry.find('id').get_text()
-                    name = entry.find('name').get_text()
-                    year = entry.find('year').get_text()
-                    releasegroup = entry.find('releasegroup').get_text()
-                    resolution = entry.find('resolution').get_text()
-                    encoding = entry.find('encoding').get_text()
-                    freeleech = entry.find('freeleech').get_text()
-                    media = entry.find('media').get_text()
-                    audioformat = entry.find('audioformat').get_text()
+                torrent_desc = f'{resolution}.{media}.{audioformat}.{encoding}-{releasegroup}'
 
-                    # skip audio channel only releases
-                    if resolution == '':
-                        continue
+                if self.conf('prefer_internal') and freeleech in ['0.25', '0.50']:
+                    torrentscore += 200
 
-                    torrent_desc = '%s.%s.%s.%s-%s' % (resolution, media, audioformat, encoding, releasegroup)
+                if encoding == 'x264' and self.conf('favor') in ['encode', 'both']:
+                    torrentscore += 200
+                elif re.search('Remux', encoding) and self.conf('favor') in ['remux', 'both']:
+                    torrentscore += 200
 
-                    if self.conf('prefer_internal') and freeleech in ['0.25', '0.50']:
-                        torrentscore += 200
-
-                    if encoding == 'x264' and self.conf('favor') in ['encode', 'both']:
-                        torrentscore += 200
-                    elif re.search('Remux', encoding) and self.conf('favor') in ['remux', 'both']:
-                        torrentscore += 200
-
-                    name = re.sub(r'\W', '.', name)
-                    name = re.sub(r'\.+', '.', name)
-                    results.append({
+                name = re.sub(r'\W', '.', name)
+                name = re.sub(r'\.+', '.', name)
+                results.append(
+                    {
                         'id': torrent_id,
-                        'name': '%s.%s.%s' % (name, year, torrent_desc),
-                        'url': self.urls['download'] % (torrent_id, authkey, self.conf('passkey')),
+                        'name': f'{name}.{year}.{torrent_desc}',
+                        'url': self.urls['download']
+                        % (torrent_id, authkey, self.conf('passkey')),
                         'detail_url': self.urls['detail'] % torrent_id,
                         'size': tryInt(entry.find('size').get_text()) / 1048576,
                         'seeders': tryInt(entry.find('seeders').get_text()),
                         'leechers': tryInt(entry.find('leechers').get_text()),
-                        'score': torrentscore
-                    })
+                        'score': torrentscore,
+                    }
+                )
 
-            except:
-                log.error('Failed getting results from %s: %s', (self.getName(), traceback.format_exc()))
+        except:
+            log.error('Failed getting results from %s: %s', (self.getName(), traceback.format_exc()))
 
 
 config = [{

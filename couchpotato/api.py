@@ -75,7 +75,7 @@ def addNonBlockApiView(route, func_tuple, docs = None, **kwargs):
     api_nonblock[route] = func_tuple
 
     if docs:
-        api_docs[route[4:] if route[0:4] == 'api.' else route] = docs
+        api_docs[route[4:] if route[:4] == 'api.' else route] = docs
     else:
         api_docs_missing.append(route)
 
@@ -100,10 +100,10 @@ class ApiHandler(RequestHandler):
 
         try:
 
-            kwargs = {}
-            for x in self.request.arguments:
-                kwargs[x] = urllib.unquote(self.get_argument(x))
-
+            kwargs = {
+                x: urllib.unquote(self.get_argument(x))
+                for x in self.request.arguments
+            }
             # Split array arguments
             kwargs = getParams(kwargs)
             kwargs['_request'] = self
@@ -133,24 +133,22 @@ class ApiHandler(RequestHandler):
 
     def sendData(self, result, route):
 
-        if not self.request.connection.stream.closed():
-            try:
-                # Check JSONP callback
-                jsonp_callback = self.get_argument('callback_func', default = None)
-
-                if jsonp_callback:
-                    self.set_header('Content-Type', 'text/javascript')
-                    self.finish(str(jsonp_callback) + '(' + json.dumps(result) + ')')
-                elif isinstance(result, tuple) and result[0] == 'redirect':
-                    self.redirect(result[1])
-                else:
-                    self.finish(result)
-            except UnicodeDecodeError:
-                log.error('Failed proper encode: %s', traceback.format_exc())
-            except:
-                log.debug('Failed doing request, probably already closed: %s', (traceback.format_exc()))
-                try: self.finish({'success': False, 'error': 'Failed returning results'})
-                except: pass
+        if self.request.connection.stream.closed():
+            return
+        try:
+            if jsonp_callback := self.get_argument('callback_func', default=None):
+                self.set_header('Content-Type', 'text/javascript')
+                self.finish(f'{str(jsonp_callback)}({json.dumps(result)})')
+            elif isinstance(result, tuple) and result[0] == 'redirect':
+                self.redirect(result[1])
+            else:
+                self.finish(result)
+        except UnicodeDecodeError:
+            log.error('Failed proper encode: %s', traceback.format_exc())
+        except:
+            log.debug('Failed doing request, probably already closed: %s', (traceback.format_exc()))
+            try: self.finish({'success': False, 'error': 'Failed returning results'})
+            except: pass
 
     def unlock(self):
         try: api_locks[self.route].release()
@@ -165,6 +163,6 @@ def addApiView(route, func, static = False, docs = None, **kwargs):
         api_locks[route] = threading.Lock()
 
     if docs:
-        api_docs[route[4:] if route[0:4] == 'api.' else route] = docs
+        api_docs[route[4:] if route[:4] == 'api.' else route] = docs
     else:
         api_docs_missing.append(route)

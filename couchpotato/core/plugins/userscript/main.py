@@ -52,6 +52,8 @@ class Userscript(Plugin):
 
         klass = self
 
+
+
         class UserscriptHandler(RequestHandler):
 
             def get(self, random, route):
@@ -60,10 +62,10 @@ class Userscript(Plugin):
                 loc = bookmarklet_host if bookmarklet_host else "{0}://{1}".format(self.request.protocol, self.request.headers.get('X-Forwarded-Host') or self.request.headers.get('host'))
 
                 params = {
-                    'includes': fireEvent('userscript.get_includes', merge = True),
-                    'excludes': fireEvent('userscript.get_excludes', merge = True),
+                    'includes': fireEvent('userscript.get_includes', merge=True),
+                    'excludes': fireEvent('userscript.get_excludes', merge=True),
                     'version': klass.getVersion(),
-                    'api': '%suserscript/' % Env.get('api_base'),
+                    'api': f"{Env.get('api_base')}userscript/",
                     'host': loc,
                 }
 
@@ -72,7 +74,10 @@ class Userscript(Plugin):
 
                 self.redirect(Env.get('api_base') + 'file.cache/couchpotato.user.js')
 
-        Env.get('app').add_handlers(".*$", [('%s%s' % (Env.get('api_base'), script_route), UserscriptHandler)])
+
+        Env.get('app').add_handlers(
+            ".*$", [(f"{Env.get('api_base')}{script_route}", UserscriptHandler)]
+        )
 
     def getVersion(self):
 

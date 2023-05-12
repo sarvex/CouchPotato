@@ -79,7 +79,7 @@ def namePositionScore(nzb_name, movie_name):
     qualities = fireEvent('quality.all', single = True)
 
     try:
-        nzb_name = re.search(r'([\'"])[^\1]*\1', nzb_name).group(0)
+        nzb_name = re.search(r'([\'"])[^\1]*\1', nzb_name)[0]
     except:
         pass
 
@@ -164,12 +164,11 @@ def partialIgnoredScore(nzb_name, movie_name, ignored_words):
         nzb_name = nzb_name.lower()
         movie_name = movie_name.lower()
 
-        score = 0
-        for ignored_word in ignored_words:
-            if ignored_word in nzb_name and ignored_word not in movie_name:
-                score -= 5
-
-        return score
+        return 0 - sum(
+            5
+            for ignored_word in ignored_words
+            if ignored_word in nzb_name and ignored_word not in movie_name
+        )
     except:
         log.error('Failed doing partialIgnoredScore: %s', traceback.format_exc())
 
@@ -182,13 +181,10 @@ def halfMultipartScore(nzb_name):
         wrong_found = 0
         for nr in [1, 2, 3, 4, 5, 'i', 'ii', 'iii', 'iv', 'v', 'a', 'b', 'c', 'd', 'e']:
             for wrong in ['cd', 'part', 'dis', 'disc', 'dvd']:
-                if '%s%s' % (wrong, nr) in nzb_name.lower():
+                if f'{wrong}{nr}' in nzb_name.lower():
                     wrong_found += 1
 
-        if wrong_found == 1:
-            return -30
-
-        return 0
+        return -30 if wrong_found == 1 else 0
     except:
         log.error('Failed doing halfMultipartScore: %s', traceback.format_exc())
 
@@ -200,7 +196,8 @@ def sceneScore(nzb_name):
     check_names = [nzb_name]
 
     # Match names between "
-    try: check_names.append(re.search(r'([\'"])[^\1]*\1', nzb_name).group(0))
+    try:
+        check_names.append(re.search(r'([\'"])[^\1]*\1', nzb_name)[0])
     except: pass
 
     # Match longest name between []

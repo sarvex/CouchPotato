@@ -21,9 +21,9 @@ class Newznab(MovieProvider, Base):
         })
 
         if len(host.get('custom_tag', '')) > 0:
-            query = '%s&%s' % (query, host.get('custom_tag'))
+            query = f"{query}&{host.get('custom_tag')}"
 
         if len(host['custom_category']) > 0:
-            query = '%s&cat=%s' % (query, host['custom_category'])
+            query = f"{query}&cat={host['custom_category']}"
 
         return query

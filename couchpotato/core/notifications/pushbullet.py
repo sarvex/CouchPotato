@@ -31,7 +31,7 @@ class Pushbullet(Notification):
             if response:
                 successful += 1
             else:
-                log.error('Unable to push notification to Pushbullet device with ID %s' % device)
+                log.error(f'Unable to push notification to Pushbullet device with ID {device}')
 
         for channel in self.getChannels():
             self.request(

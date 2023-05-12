@@ -27,11 +27,15 @@ class UserscriptBase(Provider):
         addEvent('userscript.get_movie_via_url', self.belongsTo)
 
     def search(self, name, year = None):
-        result = fireEvent('movie.search', q = '%s %s' % (name, year), limit = 1, merge = True)
+        result = fireEvent('movie.search', q=f'{name} {year}', limit = 1, merge = True)
 
         if len(result) > 0:
-            movie = fireEvent('movie.info', identifier = result[0].get('imdb'), extended = False, merge = True)
-            return movie
+            return fireEvent(
+                'movie.info',
+                identifier=result[0].get('imdb'),
+                extended=False,
+                merge=True,
+            )
         else:
             return None
 

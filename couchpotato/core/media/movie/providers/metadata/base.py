@@ -60,13 +60,16 @@ class MovieMetaData(MetaDataBase):
 
     def _createType(self, meta_name, root, movie_info, group, file_type, i):  # Get file path
         camelcase_method = underscoreToCamel(file_type.capitalize())
-        name = getattr(self, 'get' + camelcase_method + 'Name')(meta_name, root, i)
+        name = getattr(self, f'get{camelcase_method}Name')(meta_name, root, i)
 
-        if name and (self.conf('meta_' + file_type) or self.conf('meta_' + file_type) is None):
+        if name and (
+            self.conf(f'meta_{file_type}')
+            or self.conf(f'meta_{file_type}') is None
+        ):
 
-            # Get file content
-            content = getattr(self, 'get' + camelcase_method)(movie_info = movie_info, data = group, i = i)
-            if content:
+            if content := getattr(self, f'get{camelcase_method}')(
+                movie_info=movie_info, data=group, i=i
+            ):
                 log.debug('Creating %s file: %s', (file_type, name))
                 if os.path.isfile(content):
                     content = sp(content)
@@ -134,15 +137,15 @@ class MovieMetaData(MetaDataBase):
 
         # See if it is in current files
         files = data['media'].get('files')
-        if files.get('image_' + wanted_file_type):
-            if os.path.isfile(files['image_' + wanted_file_type][i]):
-                return files['image_' + wanted_file_type][i]
+        if files.get(f'image_{wanted_file_type}') and os.path.isfile(
+            files[f'image_{wanted_file_type}'][i]
+        ):
+            return files[f'image_{wanted_file_type}'][i]
 
         # Download using existing info
         try:
             images = movie_info['images'][wanted_file_type]
-            file_path = fireEvent('file.download', url = images[i], single = True)
-            return file_path
+            return fireEvent('file.download', url = images[i], single = True)
         except:
             pass
 

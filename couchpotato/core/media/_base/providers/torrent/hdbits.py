@@ -26,24 +26,21 @@ class Base(TorrentProvider):
 
         post_data = {
             'username': self.conf('username'),
-            'passkey': self.conf('passkey')
-        }
-        post_data.update(params)
-
+            'passkey': self.conf('passkey'),
+        } | params
         if self.conf('internal_only'):
-            post_data.update({'origin': [1]})
+            post_data['origin'] = [1]
 
         try:
-            result = self.getJsonData(self.urls['api'], data = json.dumps(post_data))
-
-            if result:
-                if result['status'] != 0:
-                    if self.login_fail_msg in result['message']: # Check for login failure
-                        self.disableAccount()
-                        return
-                    log.error('Error searching hdbits: %s' % result['message'])
-                else:
+            if result := self.getJsonData(
+                self.urls['api'], data=json.dumps(post_data)
+            ):
+                if result['status'] == 0:
                     return result['data']
+                if self.login_fail_msg in result['message']: # Check for login failure
+                    self.disableAccount()
+                    return
+                log.error(f"Error searching hdbits: {result['message']}")
         except:
             pass
 
@@ -53,9 +50,7 @@ class Base(TorrentProvider):
 
         match = re.match(r'tt(\d{7})', getIdentifier(movie))
 
-        data = self._post_query(imdb = {'id': match.group(1)})
-
-        if data:
+        if data := self._post_query(imdb={'id': match[1]}):
             try:
                 for result in data:
                     results.append({

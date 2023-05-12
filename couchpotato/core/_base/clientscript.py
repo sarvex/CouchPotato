@@ -51,7 +51,4 @@ class ClientScript(Plugin):
         return self.get('script', *args, **kwargs)
 
     def get(self, type):
-        if type in self.paths:
-            return self.paths[type]
-
-        return []
+        return self.paths[type] if type in self.paths else []

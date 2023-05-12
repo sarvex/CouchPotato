@@ -13,10 +13,12 @@ autoload = 'TorrentPotato'
 class TorrentPotato(MovieProvider, Base):
 
     def buildUrl(self, media, host):
-        arguments = tryUrlencode({
-            'user': host['name'],
-            'passkey': host['pass_key'],
-            'imdbid': getIdentifier(media),
-            'search' : getTitle(media) + ' ' + str(media['info']['year']),
-        })
-        return '%s?%s' % (host['host'], arguments)
+        arguments = tryUrlencode(
+            {
+                'user': host['name'],
+                'passkey': host['pass_key'],
+                'imdbid': getIdentifier(media),
+                'search': f'{getTitle(media)} ' + str(media['info']['year']),
+            }
+        )
+        return f"{host['host']}?{arguments}"

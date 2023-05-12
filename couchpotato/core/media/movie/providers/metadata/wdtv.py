@@ -48,7 +48,7 @@ class WdtvLive(MovieMetaData):
         # Runtime
         try:
             runtime = SubElement(nfoxml, 'runtime')
-            runtime.text = '%s min' % movie_info.get('runtime')
+            runtime.text = f"{movie_info.get('runtime')} min"
         except:
             pass
 
@@ -109,13 +109,11 @@ class WdtvLive(MovieMetaData):
             writers = SubElement(nfoxml, 'credits')
             writers.text = toUnicode(writer)
 
-        # Sets or collections
-        collection_name = movie_info.get('collection')
-        if collection_name:
+        if collection_name := movie_info.get('collection'):
             collection = SubElement(nfoxml, 'set')
             collection.text = toUnicode(collection_name)
             sorttitle = SubElement(nfoxml, 'sorttitle')
-            sorttitle.text = '%s %s' % (toUnicode(collection_name), movie_info.get('year'))
+            sorttitle.text = f"{toUnicode(collection_name)} {movie_info.get('year')}"
 
         # Images
         for image_url in movie_info['images']['poster_original']:

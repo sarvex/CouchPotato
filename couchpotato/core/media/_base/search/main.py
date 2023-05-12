@@ -37,20 +37,20 @@ class Search(Plugin):
 
         imdb_identifier = getImdb(q)
 
-        if not types:
-            if imdb_identifier:
-                result = fireEvent('movie.info', identifier = imdb_identifier, merge = True)
-                result = {result['type']: [result]}
-            else:
-                result = fireEvent('info.search', q = q, merge = True)
+        if types:
+            result = {
+                media_type: fireEvent(
+                    f'{media_type}.info', identifier=imdb_identifier
+                )
+                if imdb_identifier
+                else fireEvent(f'{media_type}.search', q=q)
+                for media_type in types
+            }
+        elif imdb_identifier:
+            result = fireEvent('movie.info', identifier = imdb_identifier, merge = True)
+            result = {result['type']: [result]}
         else:
-            result = {}
-            for media_type in types:
-                if imdb_identifier:
-                    result[media_type] = fireEvent('%s.info' % media_type, identifier = imdb_identifier)
-                else:
-                    result[media_type] = fireEvent('%s.search' % media_type, q = q)
-
+            result = fireEvent('info.search', q = q, merge = True)
         return mergeDicts({
             'success': True,
         }, result)
@@ -65,4 +65,4 @@ class Search(Plugin):
     def addSingleSearches(self):
 
         for media_type in fireEvent('media.types', merge = True):
-            addApiView('%s.search' % media_type, self.createSingleSearch(media_type))
+            addApiView(f'{media_type}.search', self.createSingleSearch(media_type))

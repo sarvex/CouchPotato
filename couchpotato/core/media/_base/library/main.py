@@ -104,11 +104,8 @@ class Library(LibraryBase):
         for item in items:
             key = self.key(item['doc']['type']) + 's'
 
-            if key not in result:
+            if key not in result or type(result[key]) is not dict:
                 result[key] = {}
-            elif type(result[key]) is not dict:
-                result[key] = {}
-
             if key not in keys:
                 keys.append(key)
 

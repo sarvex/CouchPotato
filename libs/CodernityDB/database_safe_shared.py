@@ -43,7 +43,8 @@ class th_safe_gen:
         @wraps(method)
         def _inner(*args, **kwargs):
             res = method(*args, **kwargs)
-            return th_safe_gen(index_name + "_" + meth_name, res, l)
+            return th_safe_gen(f"{index_name}_{meth_name}", res, l)
+
         return _inner
 
 
@@ -68,11 +69,11 @@ class SafeDatabase(Database):
         ind = self.indexes_names[name]
         for c in ('all', 'get_many'):
             m = getattr(ind, c)
-            if getattr(ind, c + "_orig", None):
+            if getattr(ind, f"{c}_orig", None):
                 return
             m_fixed = th_safe_gen.wrapper(m, name, c, self.indexes_locks[name])
             setattr(ind, c, m_fixed)
-            setattr(ind, c + '_orig', m)
+            setattr(ind, f'{c}_orig', m)
 
     def __patch_index_methods(self, name):
         ind = self.indexes_names[name]
@@ -157,17 +158,14 @@ class SafeDatabase(Database):
 
     def reindex_index(self, index, *args, **kwargs):
         if isinstance(index, basestring):
-            if not index in self.indexes_names:
-                raise PreconditionsException("No index named %s" % index)
+            if index not in self.indexes_names:
+                raise PreconditionsException(f"No index named {index}")
             index = self.indexes_names[index]
-        key = index.name + "reind"
+        key = f"{index.name}reind"
         self.main_lock.acquire()
-        if key in self.indexes_locks:
-            lock = self.indexes_locks[index.name + "reind"]
-        else:
-            self.indexes_locks[index.name +
-                               "reind"] = cdb_environment['rlock_obj']()
-            lock = self.indexes_locks[index.name + "reind"]
+        if key not in self.indexes_locks:
+            self.indexes_locks[f"{index.name}reind"] = cdb_environment['rlock_obj']()
+        lock = self.indexes_locks[f"{index.name}reind"]
         self.main_lock.release()
         try:
             lock.acquire()

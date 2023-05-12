@@ -13,5 +13,5 @@ class YouTheater(UserscriptBase):
 
     def getMovie(self, url):
         id = self.id_re.findall(url)[0]
-        url = 'http://www.youtheater.com/view.php?id=%s' % id
+        url = f'http://www.youtheater.com/view.php?id={id}'
         return super(YouTheater, self).getMovie(url)

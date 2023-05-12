@@ -40,18 +40,18 @@ class Base(TorrentProvider):
             'searchstr': getIdentifier(media)
         })
 
-        url = '%s?json=noredirect&%s' % (self.urls['torrent'], tryUrlencode(params))
+        url = f"{self.urls['torrent']}?json=noredirect&{tryUrlencode(params)}"
         res = self.getJsonData(url)
 
         try:
-            if not 'Movies' in res:
+            if 'Movies' not in res:
                 return
 
             authkey = res['AuthKey']
             passkey = res['PassKey']
 
             for ptpmovie in res['Movies']:
-                if not 'Torrents' in ptpmovie:
+                if 'Torrents' not in ptpmovie:
                     log.debug('Movie %s (%s) has NO torrents', (ptpmovie['Title'], ptpmovie['Year']))
                     continue
 
@@ -76,9 +76,9 @@ class Base(TorrentProvider):
                         if self.conf('no_scene'):
                             torrentscore -= 2000
                     if 'RemasterTitle' in torrent and torrent['RemasterTitle']:
-                        torrentdesc += self.htmlToASCII(' %s' % torrent['RemasterTitle'])
+                        torrentdesc += self.htmlToASCII(f" {torrent['RemasterTitle']}")
 
-                    torrent_name = torrent['ReleaseName'] + ' - %s' % torrentdesc
+                    torrent_name = torrent['ReleaseName'] + f' - {torrentdesc}'
 
                     def extra_check(item):
                         return self.torrentMeetsQualitySpec(item, quality_id)
@@ -104,7 +104,7 @@ class Base(TorrentProvider):
 
     def torrentMeetsQualitySpec(self, torrent, quality):
 
-        if not quality in self.post_search_filters:
+        if quality not in self.post_search_filters:
             return True
 
         reqs = self.post_search_filters[quality].copy()
@@ -117,7 +117,7 @@ class Base(TorrentProvider):
             matches_one = False
             seen_one = False
 
-            if not field in torrent:
+            if field not in torrent:
                 log.debug('Torrent with ID %s has no field "%s"; cannot apply post-search-filter for quality "%s"', (torrent['id'], field, quality))
                 continue
 
@@ -128,10 +128,10 @@ class Base(TorrentProvider):
                         return False
                 else:
                     # a positive rule; if any of the possible positive values match the field, return True
-                    log.debug('Checking if torrents field %s equals %s' % (field, spec))
+                    log.debug(f'Checking if torrents field {field} equals {spec}')
                     seen_one = True
                     if torrent[field] == spec:
-                        log.debug('Torrent satisfied %s == %s' % (field, spec))
+                        log.debug(f'Torrent satisfied {field} == {spec}')
                         matches_one = True
 
             if seen_one and not matches_one:

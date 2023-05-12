@@ -61,4 +61,9 @@ class ReleaseDownloadIndex(HashIndex):
 
     def make_key_value(self, data):
         if data.get('_t') == 'release' and data.get('download_info') and data['download_info']['id'] and data['download_info']['downloader']:
-            return md5(('%s-%s' % (data['download_info']['downloader'], data['download_info']['id'])).lower()).hexdigest(), None
+            return (
+                md5(
+                    f"{data['download_info']['downloader']}-{data['download_info']['id']}".lower()
+                ).hexdigest(),
+                None,
+            )

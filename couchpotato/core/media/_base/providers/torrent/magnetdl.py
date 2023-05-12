@@ -22,7 +22,9 @@ class Base(TorrentMagnetProvider):
 
     def _searchOnTitle(self, title, movie, quality, results):
 
-        movieTitle = tryUrlencode('%s-%s' % (title.replace(':', '').replace(' ', '-'), movie['info']['year']))
+        movieTitle = tryUrlencode(
+            f"{title.replace(':', '').replace(' ', '-')}-{movie['info']['year']}"
+        )
 
         next_page = True
         current_page = 1
@@ -31,9 +33,7 @@ class Base(TorrentMagnetProvider):
 
             next_page = False
             url = self.urls['search'] % (movieTitle[:1], movieTitle, current_page)
-            data = self.getHTMLData(url)
-
-            if data:
+            if data := self.getHTMLData(url):
                 html = BeautifulSoup(data)
 
                 try:
@@ -63,7 +63,7 @@ class Base(TorrentMagnetProvider):
                             })
                         elif result.find('td', attrs = {'id': 'pages'}):
                             page_td = result.find('td', attrs = {'id': 'pages'})
-                            next_title = 'Downloads | Page %s' % (current_page + 1)
+                            next_title = f'Downloads | Page {current_page + 1}'
                             if page_td.find('a', attrs = {'title': next_title}):
                                 next_page = True
 

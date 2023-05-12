@@ -97,7 +97,7 @@ class Scheduler(object):
             raise SchedulerAlreadyRunningError
 
         # Create a RAMJobStore as the default if there is no default job store
-        if not 'default' in self._jobstores:
+        if 'default' not in self._jobstores:
             self.add_jobstore(RAMJobStore(), 'default', True)
 
         # Schedule all pending jobs
@@ -163,7 +163,7 @@ class Scheduler(object):
         self._jobstores_lock.acquire()
         try:
             if alias in self._jobstores:
-                raise KeyError('Alias "%s" is already in use' % alias)
+                raise KeyError(f'Alias "{alias}" is already in use')
             self._jobstores[alias] = jobstore
             jobstore.load_jobs()
         finally:
@@ -187,7 +187,7 @@ class Scheduler(object):
         try:
             jobstore = self._jobstores.pop(alias)
             if not jobstore:
-                raise KeyError('No such job store: %s' % alias)
+                raise KeyError(f'No such job store: {alias}')
         finally:
             self._jobstores_lock.release()
 
@@ -250,7 +250,7 @@ class Scheduler(object):
             try:
                 store = self._jobstores[jobstore]
             except KeyError:
-                raise KeyError('No such job store: %s' % jobstore)
+                raise KeyError(f'No such job store: {jobstore}')
             store.add_job(job)
         finally:
             self._jobstores_lock.release()
@@ -434,7 +434,7 @@ class Scheduler(object):
         finally:
             self._jobstores_lock.release()
 
-        raise KeyError('Job "%s" is not scheduled in any job store' % job)
+        raise KeyError(f'Job "{job}" is not scheduled in any job store')
 
     def unschedule_func(self, func):
         """
@@ -468,10 +468,9 @@ class Scheduler(object):
         self._jobstores_lock.acquire()
         try:
             for alias, jobstore in iteritems(self._jobstores):
-                job_strs.append('Jobstore %s:' % alias)
+                job_strs.append(f'Jobstore {alias}:')
                 if jobstore.jobs:
-                    for job in jobstore.jobs:
-                        job_strs.append('    %s' % job)
+                    job_strs.extend(f'    {job}' for job in jobstore.jobs)
                 else:
                     job_strs.append('    No scheduled jobs')
         finally:
@@ -542,16 +541,11 @@ class Scheduler(object):
         try:
             for alias, jobstore in iteritems(self._jobstores):
                 for job in tuple(jobstore.jobs):
-                    run_times = job.get_run_times(now)
-                    if run_times:
+                    if run_times := job.get_run_times(now):
                         self._threadpool.submit(self._run_job, job, run_times)
 
                         # Increase the job's run count
-                        if job.coalesce:
-                            job.runs += 1
-                        else:
-                            job.runs += len(run_times)
-
+                        job.runs += 1 if job.coalesce else len(run_times)
                         # Update the job, but don't keep finished jobs around
                         if job.compute_next_run_time(
                                 now + timedelta(microseconds=1)):

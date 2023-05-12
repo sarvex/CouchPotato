@@ -76,10 +76,7 @@ class Sabnzbd(DownloaderBase):
         nzo_ids = sab_data.get('nzo_ids', [])
         if sab_data.get('status') and not sab_data.get('error') and isinstance(nzo_ids, list) and len(nzo_ids) > 0:
             log.info('NZB sent to SAB successfully.')
-            if filedata:
-                return self.downloadReturnId(nzo_ids[0])
-            else:
-                return True
+            return self.downloadReturnId(nzo_ids[0]) if filedata else True
         else:
             log.error('Error getting data from SABNZBd: %s', sab_data)
             return False
@@ -223,15 +220,14 @@ class Sabnzbd(DownloaderBase):
         }))
 
         data = self.urlopen(url, timeout = 60, show_error = False, headers = {'User-Agent': Env.getIdentifier()}, **kwargs)
-        if use_json:
-            d = json.loads(data)
-            if d.get('error'):
-                log.error('Error getting data from SABNZBd: %s', d.get('error'))
-                return {}
-
-            return d.get(request_params['mode']) or d
-        else:
+        if not use_json:
             return data
+        d = json.loads(data)
+        if d.get('error'):
+            log.error('Error getting data from SABNZBd: %s', d.get('error'))
+            return {}
+
+        return d.get(request_params['mode']) or d
 
 
 config = [{

@@ -33,9 +33,7 @@ class FanartTV(MovieProvider):
 
         try:
             url = self.urls['api'] % identifier
-            fanart_data = self.getJsonData(url, show_error = False)
-
-            if fanart_data:
+            if fanart_data := self.getJsonData(url, show_error=False):
                 log.debug('Found images for %s', fanart_data.get('name'))
                 images = self._parseMovie(fanart_data)
         except HTTPError as e:
@@ -67,9 +65,9 @@ class FanartTV(MovieProvider):
         if len(images['logo']) == 0:
             images['logo'] = self._getMultImages(movie.get('movielogo', []), 1)
 
-        fanarts = self._getMultImages(movie.get('moviebackground', []), self.MAX_EXTRAFANART + 1)
-
-        if fanarts:
+        if fanarts := self._getMultImages(
+            movie.get('moviebackground', []), self.MAX_EXTRAFANART + 1
+        ):
             images['backdrop_original'] = [fanarts[0]]
             images['extra_fanart'] = fanarts[1:]
 
@@ -80,15 +78,8 @@ class FanartTV(MovieProvider):
         Return a subset of discImages. Only bluray disc images will be returned.
         """
 
-        trimmed = []
-        for disc in disc_images:
-            if disc.get('disc_type') == 'bluray':
-                trimmed.append(disc)
-
-        if len(trimmed) == 0:
-            return disc_images
-
-        return trimmed
+        trimmed = [disc for disc in disc_images if disc.get('disc_type') == 'bluray']
+        return disc_images if not trimmed else trimmed
 
     def _getImage(self, images):
         image_url = None
@@ -106,21 +97,17 @@ class FanartTV(MovieProvider):
         If n<0, all images will be returned.
         """
         image_urls = []
-        pool = []
-        for image in images:
-            if image.get('lang') == 'en':
-                pool.append(image)
+        pool = [image for image in images if image.get('lang') == 'en']
         orig_pool_size = len(pool)
 
-        while len(pool) > 0 and (n < 0 or orig_pool_size - len(pool) < n):
+        while pool and (n < 0 or orig_pool_size - len(pool) < n):
             best = None
             highscore = -1
             for image in pool:
                 if tryInt(image.get('likes')) > highscore:
                     highscore = tryInt(image.get('likes'))
                     best = image
-            url = best.get('url') or best.get('href')
-            if url:
+            if url := best.get('url') or best.get('href'):
                 image_urls.append(url)
             pool.remove(best)
 

@@ -12,8 +12,7 @@ class Hummingbird(Automation):
 	def getIMDBids(self):
 		movies = []
 		for movie in self.getWatchlist():
-			imdb = self.search(movie[0], movie[1])
-			if imdb:
+			if imdb := self.search(movie[0], movie[1]):
 				movies.append(imdb['imdb'])
 		return movies
 
@@ -22,7 +21,7 @@ class Hummingbird(Automation):
 			log.error('You need to fill in a username')
 			return []
 
-		url = "http://hummingbird.me/api/v1/users/%s/library" % self.conf('automation_username')
+		url = f"http://hummingbird.me/api/v1/users/{self.conf('automation_username')}/library"
 		data = self.getJsonData(url)
 
 		chosen_filter = {
@@ -33,11 +32,7 @@ class Hummingbird(Automation):
 			'automation_list_dropped': 'dropped',
 		}
 
-		chosen_lists = []
-		for x in chosen_filter:
-			if self.conf(x):
-				chosen_lists.append(chosen_filter[x])
-
+		chosen_lists = [value for x, value in chosen_filter.items() if self.conf(x)]
 		entries = []
 		for item in data:
 			if item['anime']['show_type'] != 'Movie' or item['status'] not in chosen_lists:

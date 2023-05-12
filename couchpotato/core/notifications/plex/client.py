@@ -21,11 +21,7 @@ class PlexClientProtocol(object):
 
 class PlexClientHTTP(PlexClientProtocol):
     def request(self, command, client):
-        url = 'http://%s:%s/xbmcCmds/xbmcHttp/?%s' % (
-            client['address'],
-            client['port'],
-            tryUrlencode(command)
-        )
+        url = f"http://{client['address']}:{client['port']}/xbmcCmds/xbmcHttp/?{tryUrlencode(command)}"
 
         headers = {}
 
@@ -43,7 +39,7 @@ class PlexClientHTTP(PlexClientProtocol):
 
         data = {
             'command': 'ExecBuiltIn',
-            'parameter': 'Notification(CouchPotato, %s)' % message
+            'parameter': f'Notification(CouchPotato, {message})',
         }
 
         return self.request(data, client)
@@ -52,10 +48,7 @@ class PlexClientHTTP(PlexClientProtocol):
 class PlexClientJSON(PlexClientProtocol):
     def request(self, method, params, client):
         log.debug('sendJSON("%s", %s, %s)', (method, params, client))
-        url = 'http://%s:%s/jsonrpc' % (
-            client['address'],
-            client['port']
-        )
+        url = f"http://{client['address']}:{client['port']}/jsonrpc"
 
         headers = {
             'Content-Type': 'application/json'

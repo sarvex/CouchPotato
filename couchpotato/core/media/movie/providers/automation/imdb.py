@@ -64,11 +64,7 @@ class IMDBBase(Automation, RSS):
 
                 html = BeautifulSoup(split[1])
                 for x in ['list compact', 'lister', 'list detail sub-list']:
-                    html2 = html.find('div', attrs = {
-                        'class': x
-                    })
-
-                    if html2:
+                    if html2 := html.find('div', attrs={'class': x}):
                         html = html2.contents
                         html = ''.join([str(x) for x in html])
                         break
@@ -76,9 +72,7 @@ class IMDBBase(Automation, RSS):
                 log.error('Failed parsing IMDB page "%s": %s', (url, traceback.format_exc()))
 
         html = ss(html)
-        imdbs = getImdb(html, multiple = True) if html else []
-
-        return imdbs
+        return getImdb(html, multiple = True) if html else []
 
 
 class IMDBWatchlist(IMDBBase):
@@ -99,12 +93,11 @@ class IMDBWatchlist(IMDBBase):
                 # Get list ID
                 ids = re.findall('(?:list/|list_id=)([a-zA-Z0-9\-_]{11})', watchlist_url)
                 if len(ids) == 1:
-                    watchlist_url = 'http://www.imdb.com/list/%s/?view=compact&sort=created:asc' % ids[0]
-                # Try find user id with watchlist
+                    watchlist_url = f'http://www.imdb.com/list/{ids[0]}/?view=compact&sort=created:asc'
                 else:
                     userids = re.findall('(ur\d{7,9})', watchlist_url)
                     if len(userids) == 1:
-                        watchlist_url = 'http://www.imdb.com/user/%s/watchlist?view=compact&sort=created:asc' % userids[0]
+                        watchlist_url = f'http://www.imdb.com/user/{userids[0]}/watchlist?view=compact&sort=created:asc'
             except:
                 log.error('Failed getting id from watchlist: %s', traceback.format_exc())
 
@@ -116,7 +109,7 @@ class IMDBWatchlist(IMDBBase):
             while True:
                 try:
 
-                    w_url = '%s&start=%s' % (watchlist_url, start)
+                    w_url = f'{watchlist_url}&start={start}'
                     imdbs = self.getFromURL(w_url)
 
                     for imdb in imdbs:
@@ -152,7 +145,7 @@ class IMDBAutomation(IMDBBase):
             chart = self.charts[name]
             url = chart.get('url')
 
-            if self.conf('automation_charts_%s' % name):
+            if self.conf(f'automation_charts_{name}'):
                 imdb_ids = self.getFromURL(url)
 
                 try:
@@ -179,12 +172,11 @@ class IMDBCharts(IMDBBase):
 
         for name in self.charts:
             chart = self.charts[name].copy()
-            cache_key = 'imdb.chart_display_%s' % name
+            cache_key = f'imdb.chart_display_{name}'
 
-            if self.conf('chart_display_%s' % name):
+            if self.conf(f'chart_display_{name}'):
 
-                cached = self.getCache(cache_key)
-                if cached:
+                if cached := self.getCache(cache_key):
                     chart['list'] = cached
                     movie_lists.append(chart)
                     continue
@@ -195,7 +187,7 @@ class IMDBCharts(IMDBBase):
                 imdb_ids = self.getFromURL(url)
 
                 try:
-                    for imdb_id in imdb_ids[0:max_items]:
+                    for imdb_id in imdb_ids[:max_items]:
 
                         is_movie = fireEvent('movie.is_movie', identifier = imdb_id, adding = False, single = True)
                         if not is_movie:

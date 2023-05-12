@@ -29,9 +29,7 @@ class Base(TorrentProvider):
     def _searchOnTitle(self, title, movie, quality, results):
 
         url = self.urls['search'] % self.buildUrl(title, movie, quality)
-        data = self.getHTMLData(url)
-
-        if data:
+        if data := self.getHTMLData(url):
             html = BeautifulSoup(data, 'html.parser', parse_only = self.only_tables_tags)
 
             try:

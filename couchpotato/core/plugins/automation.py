@@ -43,11 +43,17 @@ class Automation(Plugin):
             if self.shuttingDown():
                 break
 
-            prop_name = 'automation.added.%s' % imdb_id
+            prop_name = f'automation.added.{imdb_id}'
             added = Env.prop(prop_name, default = False)
             if not added:
-                added_movie = fireEvent('movie.add', params = {'identifier': imdb_id}, force_readd = False, search_after = False, update_after = True, single = True)
-                if added_movie:
+                if added_movie := fireEvent(
+                    'movie.add',
+                    params={'identifier': imdb_id},
+                    force_readd=False,
+                    search_after=False,
+                    update_after=True,
+                    single=True,
+                ):
                     movie_ids.append(added_movie['_id'])
                 Env.prop(prop_name, True)
 
@@ -56,8 +62,7 @@ class Automation(Plugin):
             if self.shuttingDown():
                 break
 
-            movie_dict = fireEvent('media.get', movie_id, single = True)
-            if movie_dict:
+            if movie_dict := fireEvent('media.get', movie_id, single=True):
                 fireEvent('movie.searcher.single', movie_dict)
 
         return True

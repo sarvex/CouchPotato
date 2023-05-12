@@ -21,8 +21,7 @@ class TelegramBot(Notification):
 
         # Add IMDB url to message:
         if data:
-            imdb_id = getIdentifier(data)
-            if imdb_id:
+            if imdb_id := getIdentifier(data):
                 url = 'http://www.imdb.com/title/{0}/'.format(imdb_id)
                 message = '{0}\n{1}'.format(message, url)
 
@@ -34,7 +33,7 @@ class TelegramBot(Notification):
 
         # Error logging
         sent_successfuly = True
-        if not response.status_code == 200:
+        if response.status_code != 200:
             log.error('Could not send notification to TelegramBot (token=%s). Response: [%s]', (token, response.text))
             sent_successfuly = False
 

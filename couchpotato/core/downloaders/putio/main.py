@@ -34,19 +34,15 @@ class PutIO(DownloaderBase):
         for f in files:
             if f.content_type == 'application/x-directory':
                 if f.name == tfolder:
-                   return f.id
-                else:
-                    result = self.recursionFolder(client, f.id, tfolder)
-                    if result != 0:
-                       return result
+                    return f.id
+                result = self.recursionFolder(client, f.id, tfolder)
+                if result != 0:
+                   return result
         return 0
 
     # This will check the root for the folder, and kick of recusively checking sub folder
     def convertFolder(self, client, folder):
-        if folder == 0:
-            return 0
-        else:
-            return self.recursionFolder(client, 0, folder)
+        return 0 if folder == 0 else self.recursionFolder(client, 0, folder)
 
     def download(self, data = None, media = None, filedata = None):
         if not media: media = {}
@@ -61,10 +57,12 @@ class PutIO(DownloaderBase):
         # Note callback_host is NOT our address, it's the internet host that putio can call too
         callbackurl = None
         if self.conf('download'):
-            pre = 'http://'
-            if self.conf('https'):
-              pre = 'https://'
-            callbackurl = pre + self.conf('callback_host') + '%sdownloader.putio.getfrom/' %Env.get('api_base'.strip('/'))
+            pre = 'https://' if self.conf('https') else 'http://'
+            callbackurl = (
+                pre
+                + self.conf('callback_host')
+                + f"{Env.get('api_base'.strip('/'))}downloader.putio.getfrom/"
+            )
         log.debug('callbackurl is %s', callbackurl)
         resp = client.Transfer.add_url(url, callback_url = callbackurl, parent_id = putioFolder)
         log.debug('resp is %s', resp.id)
@@ -81,10 +79,10 @@ class PutIO(DownloaderBase):
 
     def getAuthorizationUrl(self, host = None, **kwargs):
 
-        callback_url = cleanHost(host) + '%sdownloader.putio.credentials/' % (Env.get('api_base').lstrip('/'))
+        callback_url = f"{cleanHost(host)}{Env.get('api_base').lstrip('/')}downloader.putio.credentials/"
         log.debug('callback_url is %s', callback_url)
 
-        target_url = self.oauth_authenticate + "?target=" + callback_url
+        target_url = f"{self.oauth_authenticate}?target={callback_url}"
         log.debug('target_url is %s', target_url)
 
         return {
@@ -114,24 +112,21 @@ class PutIO(DownloaderBase):
             if t.id in ids:
 
                 log.debug('downloading list is %s', self.downloading_list)
-                if t.status == "COMPLETED" and self.conf('download') == False :
+                if t.status == "COMPLETED" and self.conf('download') == False:
                     status = 'completed'
 
-                # So check if we are trying to download something
                 elif t.status == "COMPLETED" and self.conf('download') == True:
-                      # Assume we are done
-                      status = 'completed'
-                      if not self.downloading_list:
-                          now = datetime.datetime.utcnow()
-                          date_time = datetime.datetime.strptime(t.finished_at,"%Y-%m-%dT%H:%M:%S")
-                          # We need to make sure a race condition didn't happen
-                          if (now - date_time) < datetime.timedelta(minutes=5):
-                              # 5 minutes haven't passed so we wait
-                              status = 'busy'
-                      else:
-                          # If we have the file_id in the downloading_list mark it as busy
-                          if str(t.file_id) in self.downloading_list:
-                              status = 'busy'
+                    # Assume we are done
+                    status = 'completed'
+                    if not self.downloading_list:
+                        now = datetime.datetime.utcnow()
+                        date_time = datetime.datetime.strptime(t.finished_at,"%Y-%m-%dT%H:%M:%S")
+                        # We need to make sure a race condition didn't happen
+                        if (now - date_time) < datetime.timedelta(minutes=5):
+                            # 5 minutes haven't passed so we wait
+                            status = 'busy'
+                    elif str(t.file_id) in self.downloading_list:
+                        status = 'busy'
                 else:
                     status = 'busy'
                 release_downloads.append({

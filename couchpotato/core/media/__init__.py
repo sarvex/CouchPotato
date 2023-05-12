@@ -28,7 +28,7 @@ class MediaBase(Plugin):
             try:
                 media = fireEvent('media.get', media_id, single = True)
                 if media:
-                    event_name = '%s.searcher.single' % media.get('type')
+                    event_name = f"{media.get('type')}.searcher.single"
                     fireEventAsync(event_name, media, on_complete = self.createNotifyFront(media_id), manual = True)
             except:
                 log.error('Failed creating onComplete: %s', traceback.format_exc())
@@ -41,7 +41,7 @@ class MediaBase(Plugin):
             try:
                 media = fireEvent('media.get', media_id, single = True)
                 if media:
-                    event_name = '%s.update' % media.get('type')
+                    event_name = f"{media.get('type')}.update"
                     fireEvent('notify.frontend', type = event_name, data = media)
             except:
                 log.error('Failed creating onComplete: %s', traceback.format_exc())
@@ -73,7 +73,7 @@ class MediaBase(Plugin):
         existing_files = media['files']
 
         image_type = 'poster'
-        file_type = 'image_%s' % image_type
+        file_type = f'image_{image_type}'
 
         # Make existing unique
         unique_files = list(set(existing_files.get(file_type, [])))
@@ -99,17 +99,15 @@ class MediaBase(Plugin):
                 continue
 
             # Check if it has top image
-            filename = '%s.%s' % (md5(image), getExt(image))
+            filename = f'{md5(image)}.{getExt(image)}'
             existing = existing_files.get(file_type, [])
-            has_latest = False
-            for x in existing:
-                if filename in x:
-                    has_latest = True
-
-            if not has_latest or file_type not in existing_files or len(existing_files.get(file_type, [])) == 0:
-                file_path = fireEvent('file.download', url = image, single = True)
-                if file_path:
-                    existing_files[file_type] = [toUnicode(file_path)]
-                    break
-            else:
+            has_latest = any(filename in x for x in existing)
+            if (
+                has_latest
+                and file_type in existing_files
+                and len(existing_files.get(file_type, [])) != 0
+            ):
+                break
+            if file_path := fireEvent('file.download', url=image, single=True):
+                existing_files[file_type] = [toUnicode(file_path)]
                 break

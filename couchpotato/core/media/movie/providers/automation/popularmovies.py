@@ -15,9 +15,7 @@ class PopularMovies(Automation):
     def getIMDBids(self):
 
         movies = []
-        retrieved_movies = self.getJsonData(self.url)
-
-        if retrieved_movies:
+        if retrieved_movies := self.getJsonData(self.url):
             for movie in retrieved_movies:
                 imdb_id = movie.get('imdb_id')
                 info = fireEvent('movie.info', identifier = imdb_id, extended = False, merge = True)

@@ -19,11 +19,7 @@ def getParams(params):
 
         nest = re.split("([\[\]]+)", param)
         if len(nest) > 1:
-            nested = []
-            for key in nest:
-                if reg.match(key):
-                    nested.append(key)
-
+            nested = [key for key in nest if reg.match(key)]
             current = temp
 
             for item in nested:
@@ -38,7 +34,10 @@ def getParams(params):
                     current = current[item]
         else:
             temp[param] = toUnicode(unquote(value))
-            if temp[param].lower() in ['true', 'false']:
+            if temp[param].lower() == 'true':
+                temp[param] = temp[param].lower() != 'false'
+
+            elif temp[param].lower() == 'false':
                 temp[param] = temp[param].lower() != 'false'
 
     return dictToList(temp)
@@ -55,10 +54,10 @@ def dictToList(params):
                 alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
                 sorted_keys = sorted(value.keys(), key = alphanum_key)
 
-                all_ints = 0
-                for pnr in sorted_keys:
-                    all_ints += 1 if non_decimal.sub('', pnr) == pnr else 0
-
+                all_ints = sum(
+                    1 if non_decimal.sub('', pnr) == pnr else 0
+                    for pnr in sorted_keys
+                )
                 if all_ints == len(sorted_keys):
                     new_value = [dictToList(value[k]) for k in sorted_keys]
                 else:

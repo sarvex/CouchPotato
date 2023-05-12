@@ -53,14 +53,14 @@ class Blackhole(DownloaderBase):
                     except:
                         log.error('Failed download torrent via magnet url: %s', traceback.format_exc())
 
-                    # If it's still empty, either write the magnet link to a .magnet file, or error out.
-                    if not filedata or len(filedata) < 50:
-                        if self.conf('magnet_file'):
-                            filedata = data.get('url') + '\n'
-                            data['protocol'] = 'magnet'
-                        else:
-                            log.error('No nzb/torrent available: %s', data.get('url'))
-                            return False
+                # If it's still empty, either write the magnet link to a .magnet file, or error out.
+                if not filedata or len(filedata) < 50:
+                    if self.conf('magnet_file'):
+                        filedata = data.get('url') + '\n'
+                        data['protocol'] = 'magnet'
+                    else:
+                        log.error('No nzb/torrent available: %s', data.get('url'))
+                        return False
 
                 # Create filename with imdb id and other nice stuff
                 file_name = self.createFileName(data, filedata, media)
@@ -84,15 +84,11 @@ class Blackhole(DownloaderBase):
                         with open(full_path, 'wb') as f:
                             f.write(filedata)
                         os.chmod(full_path, Env.getPermission('file'))
-                        return self.downloadReturnId('')
                     else:
                         log.info('File %s already exists.', full_path)
-                        return self.downloadReturnId('')
-
+                    return self.downloadReturnId('')
                 except:
                     log.error('Failed to download to blackhole %s', traceback.format_exc())
-                    pass
-
             except:
                 log.info('Failed to download file %s: %s', (data.get('name'), traceback.format_exc()))
                 return False

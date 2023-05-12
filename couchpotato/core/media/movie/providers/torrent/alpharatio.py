@@ -29,7 +29,8 @@ class AlphaRatio(MovieProvider, Base):
     cat_backup_id = 8
 
     def buildUrl(self, media, quality):
-        query = (tryUrlencode(fireEvent('library.query', media, single = True)),
-                 self.getSceneOnly(),
-                 self.getCatId(quality)[0])
-        return query
+        return (
+            tryUrlencode(fireEvent('library.query', media, single=True)),
+            self.getSceneOnly(),
+            self.getCatId(quality)[0],
+        )

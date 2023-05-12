@@ -94,21 +94,19 @@ class Plugin(object):
         if isinstance(content, requests.models.Response):
 
             # Write file to temp
-            with open('%s.tmp' % path, write_type) as f:
+            with open(f'{path}.tmp', write_type) as f:
                 for chunk in content.iter_content(chunk_size = 1048576):
                     if chunk:  # filter out keep-alive new chunks
                         f.write(chunk)
                         f.flush()
 
             # Rename to destination
-            os.rename('%s.tmp' % path, path)
+            os.rename(f'{path}.tmp', path)
 
         else:
             try:
-                f = open(path, write_type)
-                f.write(content)
-                f.close()
-
+                with open(path, write_type) as f:
+                    f.write(content)
                 try:
                     os.chmod(path, Env.getPermission('file'))
                 except:
@@ -162,9 +160,9 @@ class Plugin(object):
 
         # Fill in some headers
         parsed_url = urlparse(url)
-        host = '%s%s' % (parsed_url.hostname, (':' + str(parsed_url.port) if parsed_url.port else ''))
+        host = f"{parsed_url.hostname}{f':{str(parsed_url.port)}' if parsed_url.port else ''}"
 
-        headers['Referer'] = headers.get('Referer', '%s://%s' % (parsed_url.scheme, host))
+        headers['Referer'] = headers.get('Referer', f'{parsed_url.scheme}://{host}')
         headers['Host'] = headers.get('Host', None)
         headers['User-Agent'] = headers.get('User-Agent', self.user_agent)
         headers['Accept-encoding'] = headers.get('Accept-encoding', 'gzip')
@@ -181,10 +179,7 @@ class Plugin(object):
 
             if proxy_server:
                 loc = "{0}:{1}@{2}".format(proxy_username, proxy_password, proxy_server) if proxy_username else proxy_server
-                proxy_url = {
-                    "http": "http://"+loc,
-                    "https": "https://"+loc,
-                }
+                proxy_url = {"http": f"http://{loc}", "https": f"https://{loc}"}
             else:
                 proxy_url = getproxies()
 
@@ -195,7 +190,9 @@ class Plugin(object):
             if self.http_failed_disabled[host] > (time.time() - 900):
                 log.info2('Disabled calls to %s for 15 minutes because so many failed requests.', host)
                 if not show_error:
-                    raise Exception('Disabled calls to %s for 15 minutes because so many failed requests' % host)
+                    raise Exception(
+                        f'Disabled calls to {host} for 15 minutes because so many failed requests'
+                    )
                 else:
                     return ''
             else:
@@ -217,7 +214,14 @@ class Plugin(object):
             }
             method = 'post' if len(data) > 0 or files else 'get'
 
-            log.info('Opening url: %s %s, data: %s', (method, url, [x for x in data.keys()] if isinstance(data, dict) else 'with data'))
+            log.info(
+                'Opening url: %s %s, data: %s',
+                (
+                    method,
+                    url,
+                    list(data.keys()) if isinstance(data, dict) else 'with data',
+                ),
+            )
             response = r.request(method, url, **kwargs)
 
             status_code = response.status_code
@@ -267,7 +271,7 @@ class Plugin(object):
 
             self.http_last_use_queue[host].append(url)
 
-            while True and not self.shuttingDown():
+            while not self.shuttingDown():
                 wait = (self.http_last_use.get(host, 0) - time.time()) + self.http_time_between_calls
 
                 if self.http_last_use_queue[host][0] != url:
@@ -287,10 +291,10 @@ class Plugin(object):
 
 
     def beforeCall(self, handler):
-        self.isRunning('%s.%s' % (self.getName(), handler.__name__))
+        self.isRunning(f'{self.getName()}.{handler.__name__}')
 
     def afterCall(self, handler):
-        self.isRunning('%s.%s' % (self.getName(), handler.__name__), False)
+        self.isRunning(f'{self.getName()}.{handler.__name__}', False)
 
     def doShutdown(self, *args, **kwargs):
         self.shuttingDown(True)
@@ -317,12 +321,11 @@ class Plugin(object):
 
     def getCache(self, cache_key, url = None, **kwargs):
 
-        use_cache = not len(kwargs.get('data', {})) > 0 and not kwargs.get('files')
+        use_cache = len(kwargs.get('data', {})) <= 0 and not kwargs.get('files')
 
         if use_cache:
             cache_key_md5 = md5(cache_key)
-            cache = Env.get('cache').get(cache_key_md5)
-            if cache:
+            if cache := Env.get('cache').get(cache_key_md5):
                 if not Env.get('dev'): log.debug('Getting cache %s', cache_key)
                 return cache
 
@@ -355,29 +358,27 @@ class Plugin(object):
         release_name = data.get('name')
         tag = self.cpTag(media, unique_tag = unique_tag)
 
-        # Check if password is filename
-        name_password = scanForPassword(data.get('name'))
-        if name_password:
+        if name_password := scanForPassword(data.get('name')):
             release_name, password = name_password
             tag += '{{%s}}' % password
         elif data.get('password'):
             tag += '{{%s}}' % data.get('password')
 
         max_length = 127 - len(tag)  # Some filesystems don't support 128+ long filenames
-        return '%s%s' % (toSafeString(toUnicode(release_name)[:max_length]), tag)
+        return f'{toSafeString(toUnicode(release_name)[:max_length])}{tag}'
 
     def createFileName(self, data, filedata, media, unique_tag = False):
         name = self.createNzbName(data, media, unique_tag = unique_tag)
         if data.get('protocol') == 'nzb' and 'DOCTYPE nzb' not in filedata and '</nzb>' not in filedata:
-            return '%s.%s' % (name, 'rar')
-        return '%s.%s' % (name, data.get('protocol'))
+            return f'{name}.rar'
+        return f"{name}.{data.get('protocol')}"
 
     def cpTag(self, media, unique_tag = False):
 
         tag = ''
         if Env.setting('enabled', 'renamer') or unique_tag:
             identifier = getIdentifier(media) or ''
-            unique_tag = ', ' + randomString() if unique_tag else ''
+            unique_tag = f', {randomString()}' if unique_tag else ''
 
             tag = '.cp('
             tag += identifier
@@ -442,7 +443,6 @@ class Plugin(object):
 
     def releaseLock(self, key):
 
-        lock = self._locks.get(key)
-        if lock:
+        if lock := self._locks.get(key):
             log.debug('Releasing lock: %s', key)
             self._locks.get(key).release()

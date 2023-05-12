@@ -72,7 +72,7 @@ class Manage(Plugin):
 
     def updateLibraryView(self, full = 1, **kwargs):
 
-        fireEventAsync('manage.update', full = True if full == '1' else False)
+        fireEventAsync('manage.update', full=full == '1')
 
         return {
             'progress': self.in_progress,
@@ -83,7 +83,7 @@ class Manage(Plugin):
         return self.updateLibrary(full = False)
 
     def updateLibrary(self, full = True):
-        last_update_key = 'manage.last_update%s' % ('_full' if full else '')
+        last_update_key = f"manage.last_update{'_full' if full else ''}"
         last_update = float(Env.prop(last_update_key, default = 0))
 
         if self.in_progress:
@@ -120,7 +120,12 @@ class Manage(Plugin):
                     continue
 
                 log.info('Updating manage library: %s', folder)
-                fireEvent('notify.frontend', type = 'manage.update', data = True, message = 'Scanning for movies in "%s"' % folder)
+                fireEvent(
+                    'notify.frontend',
+                    type='manage.update',
+                    data=True,
+                    message=f'Scanning for movies in "{folder}"',
+                )
 
                 onFound = self.createAddToLibrary(folder, added_identifiers)
                 fireEvent('scanner.scan', folder = folder, simple = True, newer_than = last_update if not full else 0, check_file_date = False, on_found = onFound, single = True)
@@ -162,9 +167,9 @@ class Manage(Plugin):
                             for release in releases:
                                 for file_type in release.get('files', {}):
                                     for release_file in release['files'][file_type]:
-                                        already_used = used_files.get(release_file)
-
-                                        if already_used:
+                                        if already_used := used_files.get(
+                                            release_file
+                                        ):
                                             release_id = release['_id'] if already_used.get('last_edit', 0) > release.get('last_edit', 0) else already_used['_id']
                                             if release_id not in deleted_releases:
                                                 fireEvent('release.delete', release_id, single = True)
@@ -186,15 +191,13 @@ class Manage(Plugin):
         except:
             log.error('Failed updating library: %s', (traceback.format_exc()))
 
-        while self.in_progress and len(self.in_progress) > 0 and not self.shuttingDown():
+        while self.in_progress and self.in_progress and not self.shuttingDown():
 
-            delete_me = {}
-
-            # noinspection PyTypeChecker
-            for folder in self.in_progress:
-                if self.in_progress[folder]['to_go'] <= 0:
-                    delete_me[folder] = True
-
+            delete_me = {
+                folder: True
+                for folder, value in self.in_progress.items()
+                if value['to_go'] <= 0
+            }
             for delete in delete_me:
                 del self.in_progress[delete]
 
@@ -235,7 +238,14 @@ class Manage(Plugin):
             movie_dict = fireEvent('media.get', identifier, single = True)
 
             if movie_dict:
-                fireEvent('notify.frontend', type = 'movie.added', data = movie_dict, message = None if total > 5 else 'Added "%s" to manage.' % getTitle(movie_dict))
+                fireEvent(
+                    'notify.frontend',
+                    type='movie.added',
+                    data=movie_dict,
+                    message=None
+                    if total > 5
+                    else f'Added "{getTitle(movie_dict)}" to manage.',
+                )
 
         return afterUpdate
 
@@ -261,9 +271,9 @@ class Manage(Plugin):
 
         folder = os.path.normpath(folder)
 
-        groups = fireEvent('scanner.scan', folder = folder, files = files, single = True)
-
-        if groups:
+        if groups := fireEvent(
+            'scanner.scan', folder=folder, files=files, single=True
+        ):
             for group in groups.values():
                 if group.get('media'):
                     if release_download and release_download.get('release_id'):

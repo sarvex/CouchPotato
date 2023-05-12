@@ -29,8 +29,10 @@ class Twitter(Notification):
     def __init__(self):
         super(Twitter, self).__init__()
 
-        addApiView('notify.%s.auth_url' % self.getName().lower(), self.getAuthorizationUrl)
-        addApiView('notify.%s.credentials' % self.getName().lower(), self.getCredentials)
+        addApiView(
+            f'notify.{self.getName().lower()}.auth_url', self.getAuthorizationUrl
+        )
+        addApiView(f'notify.{self.getName().lower()}.credentials', self.getCredentials)
 
     def notify(self, message = '', data = None, listener = None):
         if not data: data = {}
@@ -44,26 +46,26 @@ class Twitter(Notification):
         mention_tag = None
         if mention:
             if direct_message:
-                direct_message_users = '%s %s' % (direct_message_users, mention)
+                direct_message_users = f'{direct_message_users} {mention}'
                 direct_message_users = direct_message_users.replace('@', ' ')
                 direct_message_users = direct_message_users.replace(',', ' ')
             else:
-                mention_tag = '@%s' % mention.lstrip('@')
-                message = '%s %s' % (message, mention_tag)
+                mention_tag = f"@{mention.lstrip('@')}"
+                message = f'{message} {mention_tag}'
 
         try:
             if direct_message:
                 for user in direct_message_users.split():
-                    api.PostDirectMessage('[%s] %s' % (self.default_title, message), screen_name = user)
+                    api.PostDirectMessage(f'[{self.default_title}] {message}', screen_name = user)
             else:
-                update_message = '[%s] %s' % (self.default_title, message)
+                update_message = f'[{self.default_title}] {message}'
                 if len(update_message) > 140:
                     if mention_tag:
-                        api.PostUpdate(update_message[:135 - len(mention_tag)] + ('%s 1/2 ' % mention_tag))
-                        api.PostUpdate(update_message[135 - len(mention_tag):] + ('%s 2/2 ' % mention_tag))
+                        api.PostUpdate(f'{update_message[:135 - len(mention_tag)]}{mention_tag} 1/2 ')
+                        api.PostUpdate(f'{update_message[135 - len(mention_tag):]}{mention_tag} 2/2 ')
                     else:
-                        api.PostUpdate(update_message[:135] + ' 1/2')
-                        api.PostUpdate(update_message[135:] + ' 2/2')
+                        api.PostUpdate(f'{update_message[:135]} 1/2')
+                        api.PostUpdate(f'{update_message[135:]} 2/2')
                 else:
                     api.PostUpdate(update_message)
         except Exception as e:
@@ -74,7 +76,7 @@ class Twitter(Notification):
 
     def getAuthorizationUrl(self, host = None, **kwargs):
 
-        callback_url = cleanHost(host) + '%snotify.%s.credentials/' % (Env.get('api_base').lstrip('/'), self.getName().lower())
+        callback_url = f"{cleanHost(host)}{Env.get('api_base').lstrip('/')}notify.{self.getName().lower()}.credentials/"
 
         oauth_consumer = oauth2.Consumer(self.consumer_key, self.consumer_secret)
         oauth_client = oauth2.Client(oauth_consumer)
@@ -89,7 +91,10 @@ class Twitter(Notification):
         else:
             self.request_token = dict(parse_qsl(content))
 
-            auth_url = self.urls['authorize'] + ("?oauth_token=%s" % self.request_token['oauth_token'])
+            auth_url = (
+                self.urls['authorize']
+                + f"?oauth_token={self.request_token['oauth_token']}"
+            )
 
             log.info('Redirecting to "%s"', auth_url)
             return {
@@ -105,7 +110,11 @@ class Twitter(Notification):
         oauth_consumer = oauth2.Consumer(key = self.consumer_key, secret = self.consumer_secret)
         oauth_client = oauth2.Client(oauth_consumer, token)
 
-        resp, content = oauth_client.request(self.urls['access'], method = 'POST', body = 'oauth_verifier=%s' % oauth_verifier)
+        resp, content = oauth_client.request(
+            self.urls['access'],
+            method='POST',
+            body=f'oauth_verifier={oauth_verifier}',
+        )
         access_token = dict(parse_qsl(content))
 
         if resp['status'] != '200':

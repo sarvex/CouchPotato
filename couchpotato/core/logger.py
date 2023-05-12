@@ -60,25 +60,30 @@ class CPLog(object):
 
         try:
             if isinstance(replace_tuple, tuple):
-                msg = msg % tuple([ss(x) if not isinstance(x, (int, float)) else x for x in list(replace_tuple)])
+                msg = msg % tuple(
+                    ss(x) if not isinstance(x, (int, float)) else x
+                    for x in list(replace_tuple)
+                )
             elif isinstance(replace_tuple, dict):
-                msg = msg % dict((k, ss(v) if not isinstance(v, (int, float)) else v) for k, v in replace_tuple.iteritems())
+                msg = msg % {
+                    k: ss(v) if not isinstance(v, (int, float)) else v
+                    for k, v in replace_tuple.iteritems()
+                }
             else:
                 msg = msg % ss(replace_tuple)
         except Exception as e:
-            self.logger.error('Failed encoding stuff to log "%s": %s' % (msg, e))
+            self.logger.error(f'Failed encoding stuff to log "{msg}": {e}')
 
         self.setup()
         if not self.is_develop:
 
             for replace in self.replace_private:
-                msg = re.sub('(\?%s=)[^\&]+' % replace, '?%s=xxx' % replace, msg)
-                msg = re.sub('(&%s=)[^\&]+' % replace, '&%s=xxx' % replace, msg)
+                msg = re.sub('(\?%s=)[^\&]+' % replace, f'?{replace}=xxx', msg)
+                msg = re.sub('(&%s=)[^\&]+' % replace, f'&{replace}=xxx', msg)
 
             # Replace api key
             try:
-                api_key = self.Env.setting('api_key')
-                if api_key:
+                if api_key := self.Env.setting('api_key'):
                     msg = msg.replace(api_key, 'API_KEY')
             except:
                 pass

@@ -84,26 +84,28 @@ class IU_Storage(object):
         self._header_size = 100
 
     def create(self):
-        if os.path.exists(os.path.join(self.db_path, self.name + "_stor")):
+        if os.path.exists(os.path.join(self.db_path, f"{self.name}_stor")):
             raise IOError("Storage already exists!")
-        with io.open(os.path.join(self.db_path, self.name + "_stor"), 'wb') as f:
+        with io.open(os.path.join(self.db_path, f"{self.name}_stor"), 'wb') as f:
             f.write(struct.pack("10s90s", self.__version__, '|||||'))
             f.close()
-        self._f = io.open(os.path.join(
-            self.db_path, self.name + "_stor"), 'r+b', buffering=0)
+        self._f = io.open(
+            os.path.join(self.db_path, f"{self.name}_stor"), 'r+b', buffering=0
+        )
         self.flush()
         self._f.seek(0, 2)
 
     def open(self):
-        if not os.path.exists(os.path.join(self.db_path, self.name + "_stor")):
+        if not os.path.exists(os.path.join(self.db_path, f"{self.name}_stor")):
             raise IOError("Storage doesn't exists!")
-        self._f = io.open(os.path.join(
-            self.db_path, self.name + "_stor"), 'r+b', buffering=0)
+        self._f = io.open(
+            os.path.join(self.db_path, f"{self.name}_stor"), 'r+b', buffering=0
+        )
         self.flush()
         self._f.seek(0, 2)
 
     def destroy(self):
-        os.unlink(os.path.join(self.db_path, self.name + '_stor'))
+        os.unlink(os.path.join(self.db_path, f'{self.name}_stor'))
 
     def close(self):
         self._f.close()
@@ -134,9 +136,8 @@ class IU_Storage(object):
     def get(self, start, size, status='c'):
         if status == 'd':
             return None
-        else:
-            self._f.seek(start)
-            return self.data_from(self._f.read(size))
+        self._f.seek(start)
+        return self.data_from(self._f.read(size))
 
     def flush(self):
         self._f.flush()

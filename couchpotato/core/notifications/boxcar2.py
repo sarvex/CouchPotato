@@ -22,11 +22,13 @@ class Boxcar2(Notification):
             if listener == 'test':
                 long_message = 'This is a test message'
             elif data.get('identifier'):
-                long_message = 'More movie info <a href="http://www.imdb.com/title/%s/">on IMDB</a>' % data['identifier']
+                long_message = f"""More movie info <a href="http://www.imdb.com/title/{data['identifier']}/">on IMDB</a>"""
 
             data = {
                 'user_credentials': self.conf('token'),
-                'notification[title]': toUnicode('%s - %s' % (self.default_title, message)),
+                'notification[title]': toUnicode(
+                    f'{self.default_title} - {message}'
+                ),
                 'notification[long_message]': toUnicode(long_message),
                 'notification[icon_url]': self.LOGO_URL,
                 'notification[source_name]': 'CouchPotato',

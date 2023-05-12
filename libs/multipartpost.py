@@ -61,9 +61,9 @@ class MultipartPostHandler(urllib2.BaseHandler):
             boundary = mimetools.choose_boundary()
         if buffer is None:
             buffer = ''
-        for(key, value) in vars:
+        for (key, value) in vars:
             buffer += '--%s\r\n' % boundary
-            buffer += 'Content-Disposition: form-data; name="%s"' % key
+            buffer += f'Content-Disposition: form-data; name="{key}"'
             buffer += '\r\n\r\n' + value + '\r\n'
         for(key, fd) in files:
 

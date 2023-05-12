@@ -44,20 +44,20 @@ class NMJ(Notification):
         terminal.write('exit\n')
         tnoutput = terminal.read_all()
 
-        match = re.search(r'(.+\.db)\r\n?(.+)(?=sh-3.00# cat /tmp/netshare)', tnoutput)
-
-        if match:
-            database = match.group(1)
-            device = match.group(2)
+        if match := re.search(
+            r'(.+\.db)\r\n?(.+)(?=sh-3.00# cat /tmp/netshare)', tnoutput
+        ):
+            database = match[1]
+            device = match[2]
             log.info('Found NMJ database %s on device %s', (database, device))
         else:
             log.error('Could not get current NMJ database on %s, NMJ is probably not running!', host)
             return self.failed()
 
         if device.startswith('NETWORK_SHARE/'):
-            match = re.search('.*(?=\r\n?%s)' % (re.escape(device[14:])), tnoutput)
-
-            if match:
+            if match := re.search(
+                '.*(?=\r\n?%s)' % (re.escape(device[14:])), tnoutput
+            ):
                 mount = match.group().replace('127.0.0.1', host)
                 log.info('Found mounting url on the Popcorn Hour in configuration: %s', mount)
             else:

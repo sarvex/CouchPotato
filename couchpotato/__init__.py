@@ -24,10 +24,7 @@ class BaseHandler(RequestHandler):
         username = Env.setting('username')
         password = Env.setting('password')
 
-        if username and password:
-            return self.get_secure_cookie('user')
-        else:  # Login when no username or password are set
-            return True
+        return self.get_secure_cookie('user') if username and password else True
 
 
 # Main web handler
@@ -77,30 +74,35 @@ def manifest(handler):
 
     lines = [
         'CACHE MANIFEST',
-        '# %s theme' % ('dark' if Env.setting('dark_theme') else 'light'),
+        f"# {'dark' if Env.setting('dark_theme') else 'light'} theme",
         '',
         'CACHE:',
-        ''
+        '',
     ]
 
     if not Env.get('dev'):
         # CSS
-        for url in fireEvent('clientscript.get_styles', single = True):
-            lines.append(web_base + url)
-
+        lines.extend(
+            web_base + url
+            for url in fireEvent('clientscript.get_styles', single=True)
+        )
         # Scripts
-        for url in fireEvent('clientscript.get_scripts', single = True):
-            lines.append(web_base + url)
-
+        lines.extend(
+            web_base + url
+            for url in fireEvent('clientscript.get_scripts', single=True)
+        )
         # Favicon
-        lines.append(static_base + 'images/favicon.ico')
+        lines.append(f'{static_base}images/favicon.ico')
 
         # Fonts
         font_folder = sp(os.path.join(Env.get('app_dir'), 'couchpotato', 'static', 'fonts'))
         for subfolder, dirs, files in os.walk(font_folder, topdown = False):
-            for file in files:
-                if '.woff' in file:
-                    lines.append(static_base + 'fonts/' + file + ('?%s' % os.path.getmtime(os.path.join(font_folder, file))))
+            lines.extend(
+                f'{static_base}fonts/{file}'
+                + f'?{os.path.getmtime(os.path.join(font_folder, file))}'
+                for file in files
+                if '.woff' in file
+            )
     else:
         lines.append('# Not caching anything in dev mode')
 
@@ -187,7 +189,7 @@ class LogoutHandler(BaseHandler):
 
     def get(self, *args, **kwargs):
         self.clear_cookie('user')
-        self.redirect('%slogin/' % Env.get('web_base'))
+        self.redirect(f"{Env.get('web_base')}login/")
 
 
 def page_not_found(rh):
@@ -195,7 +197,7 @@ def page_not_found(rh):
     url = rh.request.uri[len(index_url):]
 
     if url[:3] != 'api':
-        r = index_url + '#' + url.lstrip('/')
+        r = f'{index_url}#' + url.lstrip('/')
         rh.redirect(r)
     else:
         if not Env.get('dev'):

@@ -49,21 +49,20 @@ class Base(TorrentProvider):
         pages = 1
         current_page = 1
         while current_page <= pages and not self.shuttingDown():
-            data = self.getHTMLData(base_url % (freeleech, current_page), headers = self.getRequestHeaders())
-            
-            if data:
+            if data := self.getHTMLData(
+                base_url % (freeleech, current_page),
+                headers=self.getRequestHeaders(),
+            ):
                 html = BeautifulSoup(data)
 
                 try:
-                    page_nav = html.find('span', attrs = {'class': 'page_nav'})
-                    if page_nav:
-                        next_link = page_nav.find("a", text = "Next")
-                        if next_link:
+                    if page_nav := html.find('span', attrs={'class': 'page_nav'}):
+                        if next_link := page_nav.find("a", text="Next"):
                             final_page_link = next_link.previous_sibling.previous_sibling
                             pages = int(final_page_link.string)
 
                     result_table = html.find('table', id="torrents")
-                    
+
                     if not result_table or 'nothing found!' in data.lower():
                         return
 

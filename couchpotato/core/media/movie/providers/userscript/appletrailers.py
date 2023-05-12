@@ -22,12 +22,14 @@ class AppleTrailers(UserscriptBase):
 
         try:
             id = re.search("FilmId.*=.*\'(?P<id>.*)\';", data)
-            id = id.group('id')
+            id = id['id']
 
-            data = self.getJsonData('https://trailers.apple.com/trailers/feeds/data/%s.json' % id)
+            data = self.getJsonData(
+                f'https://trailers.apple.com/trailers/feeds/data/{id}.json'
+            )
 
             name = data['page']['movie_title']
-            year = tryInt(data['page']['release_date'][0:4])
+            year = tryInt(data['page']['release_date'][:4])
 
             return self.search(name, year)
         except:

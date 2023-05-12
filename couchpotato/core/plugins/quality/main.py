@@ -75,8 +75,7 @@ class QualityPlugin(Plugin):
 
     def addOrder(self):
         self.order = []
-        for q in self.qualities:
-            self.order.append(q.get('identifier'))
+        self.order.extend(q.get('identifier') for q in self.qualities)
 
     def getOrder(self):
         return self.order
@@ -112,18 +111,17 @@ class QualityPlugin(Plugin):
     def single(self, identifier = ''):
 
         db = get_db()
-        quality_dict = {}
-
         try:
             quality = db.get('quality', identifier, with_doc = True)['doc']
         except RecordNotFound:
             log.error("Unable to find '%s' in the quality DB", indentifier)
             quality = None
 
-        if quality:
-            quality_dict = mergeDicts(self.getQuality(quality['identifier']), quality)
-
-        return quality_dict
+        return (
+            mergeDicts(self.getQuality(quality['identifier']), quality)
+            if quality
+            else {}
+        )
 
     def getQuality(self, identifier):
 
@@ -135,9 +133,9 @@ class QualityPlugin(Plugin):
 
         try:
             db = get_db()
-            quality = db.get('quality', kwargs.get('identifier'), with_doc = True)
-
-            if quality:
+            if quality := db.get(
+                'quality', kwargs.get('identifier'), with_doc=True
+            ):
                 quality['doc'][kwargs.get('value_type')] = tryInt(kwargs.get('value'))
                 db.update(quality['doc'])
 
@@ -169,8 +167,7 @@ class QualityPlugin(Plugin):
         try:
             db = get_db()
 
-            order = 0
-            for q in self.qualities:
+            for order, q in enumerate(self.qualities):
 
                 existing = None
                 try:
@@ -202,8 +199,6 @@ class QualityPlugin(Plugin):
                     existing['doc']['order'] = order
                     db.update(existing['doc'])
 
-                order += 1
-
             return True
         except:
             log.error('Failed: %s', traceback.format_exc())
@@ -214,7 +209,12 @@ class QualityPlugin(Plugin):
         if not extra: extra = {}
 
         # Create hash for cache
-        cache_key = str([f.replace('.' + getExt(f), '') if len(getExt(f)) < 4 else f for f in files])
+        cache_key = str(
+            [
+                f.replace(f'.{getExt(f)}', '') if len(getExt(f)) < 4 else f
+                for f in files
+            ]
+        )
         if use_cache:
             cached = self.getCache(cache_key)
             if cached and len(extra) == 0:
@@ -222,14 +222,10 @@ class QualityPlugin(Plugin):
 
         qualities = self.all()
 
-        # Start with 0
-        score = {}
-        for quality in qualities:
-            score[quality.get('identifier')] = {
-                'score': 0,
-                '3d': {}
-            }
-
+        score = {
+            quality.get('identifier'): {'score': 0, '3d': {}}
+            for quality in qualities
+        }
         # Use metadata titles as extra check
         if extra and extra.get('titles'):
             files.extend(extra.get('titles'))
@@ -265,17 +261,11 @@ class QualityPlugin(Plugin):
             self.calcScore(score, size_scores[0], 7)
         del size_scores
 
-        # Return nothing if all scores are <= 0
-        has_non_zero = 0
-        for s in score:
-            if score[s]['score'] > 0:
-                has_non_zero += 1
-
+        has_non_zero = sum(1 for value in score.values() if value['score'] > 0)
         if not has_non_zero:
             return None
 
-        heighest_quality = max(score, key = lambda p: score[p]['score'])
-        if heighest_quality:
+        if heighest_quality := max(score, key=lambda p: score[p]['score']):
             for quality in qualities:
                 if quality.get('identifier') == heighest_quality:
                     quality['is_3d'] = False
@@ -308,10 +298,11 @@ class QualityPlugin(Plugin):
             qualities = [qualities] if isinstance(qualities, (str, unicode)) else qualities
 
             for alt in qualities:
-                if isinstance(alt, tuple):
-                    if len(set(words) & set(alt)) == len(alt):
-                        log.debug('Found %s via %s %s in %s', (quality['identifier'], tag_type, quality.get(tag_type), cur_file))
-                        score += points.get(tag_type)
+                if isinstance(alt, tuple) and len(set(words) & set(alt)) == len(
+                    alt
+                ):
+                    log.debug('Found %s via %s %s in %s', (quality['identifier'], tag_type, quality.get(tag_type), cur_file))
+                    score += points.get(tag_type)
 
                 if isinstance(alt, (str, unicode)) and ss(alt.lower()) in words and ss(alt.lower()) not in scored_on:
                     log.debug('Found %s via %s %s in %s', (quality['identifier'], tag_type, quality.get(tag_type), cur_file))
@@ -429,10 +420,13 @@ class QualityPlugin(Plugin):
         try:
             index = [i for i, identifier in enumerate(profile['qualities']) if identifier == quality['identifier'] and bool(profile['3d'][i] if profile.get('3d') else False) == bool(quality.get('is_3d', False))][0]
 
-            if index == 0 or (profile['finish'][index] and int(release_age) >= int(profile.get('stop_after', [0])[0])):
-                return True
-
-            return False
+            return bool(
+                index == 0
+                or (
+                    profile['finish'][index]
+                    and int(release_age) >= int(profile.get('stop_after', [0])[0])
+                )
+            )
         except:
             return False
 

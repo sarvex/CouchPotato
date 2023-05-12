@@ -28,13 +28,10 @@ class Base(TorrentMagnetProvider, RSS):
         # Create search parameters
         search_params = self.buildUrl(title, media, quality)
 
-        min_seeds = tryInt(self.conf('minimal_seeds'))
-        if min_seeds:
-            search_params += ' seed > %s' % (min_seeds - 1)
+        if min_seeds := tryInt(self.conf('minimal_seeds')):
+            search_params += f' seed > {min_seeds - 1}'
 
-        rss_data = self.getRSSData(search_url % search_params)
-
-        if rss_data:
+        if rss_data := self.getRSSData(search_url % search_params):
             try:
 
                 for result in rss_data:
@@ -44,13 +41,13 @@ class Base(TorrentMagnetProvider, RSS):
                     description = self.getTextElement(result, 'description')
 
                     magnet = splitString(detail_url, '/')[-1]
-                    magnet_url = 'magnet:?xt=urn:btih:%s&dn=%s&tr=%s' % (magnet.upper(), tryUrlencode(name), tryUrlencode('udp://tracker.openbittorrent.com/announce'))
+                    magnet_url = f"magnet:?xt=urn:btih:{magnet.upper()}&dn={tryUrlencode(name)}&tr={tryUrlencode('udp://tracker.openbittorrent.com/announce')}"
 
                     reg = re.search('Size: (?P<size>\d+) (?P<unit>[KMG]B) Seeds: (?P<seeds>[\d,]+) Peers: (?P<peers>[\d,]+)', six.text_type(description))
-                    size = reg.group('size')
-                    unit = reg.group('unit')
-                    seeds = reg.group('seeds').replace(',', '')
-                    peers = reg.group('peers').replace(',', '')
+                    size = reg['size']
+                    unit = reg['unit']
+                    seeds = reg['seeds'].replace(',', '')
+                    peers = reg['peers'].replace(',', '')
 
                     multiplier = 1
                     if unit == 'GB':

@@ -24,10 +24,7 @@ class MediaIndex(MultiTreeBasedIndex):
             if data.get('identifier') and 'imdb' not in identifiers:
                 identifiers['imdb'] = data.get('identifier')
 
-            ids = []
-            for x in identifiers:
-                ids.append(md5('%s-%s' % (x, identifiers[x])).hexdigest())
-
+            ids = [md5(f'{x}-{identifiers[x]}').hexdigest() for x in identifiers]
             return ids, None
 
 
@@ -75,24 +72,24 @@ from couchpotato.core.helpers.encoding import simplifyString"""
 
     def make_key_value(self, data):
 
-        if data.get('_t') == 'media' and len(data.get('title', '')) > 0:
+        if data.get('_t') != 'media' or len(data.get('title', '')) <= 0:
+            return
+        out = set()
+        title = str(simplifyString(data.get('title').lower()))
+        l = self.__l
+        title_split = title.split()
 
-            out = set()
-            title = str(simplifyString(data.get('title').lower()))
-            l = self.__l
-            title_split = title.split()
+        for x in range(len(title_split)):
+            combo = ' '.join(title_split[x:])[:32].strip()
+            out.add(combo.rjust(32, '_'))
+            combo_range = max(l, min(len(combo), 32))
 
-            for x in range(len(title_split)):
-                combo = ' '.join(title_split[x:])[:32].strip()
-                out.add(combo.rjust(32, '_'))
-                combo_range = max(l, min(len(combo), 32))
+            for cx in range(1, combo_range):
+                ccombo = combo[:-cx].strip()
+                if len(ccombo) > l:
+                    out.add(ccombo.rjust(32, '_'))
 
-                for cx in range(1, combo_range):
-                    ccombo = combo[:-cx].strip()
-                    if len(ccombo) > l:
-                        out.add(ccombo.rjust(32, '_'))
-
-            return out, None
+        return out, None
 
     def make_key(self, key):
         return key.rjust(32, '_').lower()
@@ -189,10 +186,7 @@ class MediaTagIndex(MultiTreeBasedIndex):
     def make_key_value(self, data):
         if data.get('_t') == 'media' and data.get('tags') and len(data.get('tags', [])) > 0:
 
-            tags = set()
-            for tag in data.get('tags', []):
-                tags.add(self.make_key(tag))
-
+            tags = {self.make_key(tag) for tag in data.get('tags', [])}
             return list(tags), None
 
     def make_key(self, key):

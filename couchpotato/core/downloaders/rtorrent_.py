@@ -34,8 +34,7 @@ class rTorrent(DownloaderBase):
 
     def migrate(self):
 
-        url = self.conf('url')
-        if url:
+        if url := self.conf('url'):
             host_split = splitString(url.split('://')[-1], split_on = '/')
 
             self.conf('ssl', value = url.startswith('https'))
@@ -72,11 +71,7 @@ class rTorrent(DownloaderBase):
         # Use ca bundle if defined
         ca_bundle = self.conf('ssl_ca_bundle')
 
-        if ca_bundle and os.path.exists(ca_bundle):
-            return ca_bundle
-
-        # Use default ssl verification
-        return True
+        return ca_bundle if ca_bundle and os.path.exists(ca_bundle) else True
 
     def connect(self, reconnect = False):
         # Already connected?
@@ -119,7 +114,7 @@ class rTorrent(DownloaderBase):
             return True
 
         if self.error_msg:
-            return False, 'Connection failed: ' + self.error_msg
+            return False, f'Connection failed: {self.error_msg}'
 
         return False
 
@@ -216,10 +211,7 @@ class rTorrent(DownloaderBase):
         if not torrent.complete:
             return 'busy'
 
-        if torrent.open:
-            return 'seeding'
-
-        return 'completed'
+        return 'seeding' if torrent.open else 'completed'
 
     def getAllDownloadStatus(self, ids):
         """ Get status of all active downloads
@@ -278,9 +270,7 @@ class rTorrent(DownloaderBase):
         if torrent is None:
             return False
 
-        if pause:
-            return torrent.pause()
-        return torrent.resume()
+        return torrent.pause() if pause else torrent.resume()
 
     def removeFailed(self, release_download):
         log.info('%s failed downloading, deleting...', release_download['name'])

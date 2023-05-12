@@ -21,9 +21,9 @@ class CrowdAI(Automation, RSS):
 
         urls = dict(zip(splitString(self.conf('automation_urls')), [tryInt(x) for x in splitString(self.conf('automation_urls_use'))]))
 
-        for url in urls:
+        for url, value in urls.items():
 
-            if not urls[url]:
+            if not value:
                 continue
 
             rss_movies = self.getRSSData(url)
@@ -31,17 +31,18 @@ class CrowdAI(Automation, RSS):
             for movie in rss_movies:
 
                 description = self.getTextElement(movie, 'description')
-                grabs = 0
-
-                for item in movie:
-                    if item.attrib.get('name') == 'grabs':
-                        grabs = item.attrib.get('value')
-                        break
-
+                grabs = next(
+                    (
+                        item.attrib.get('value')
+                        for item in movie
+                        if item.attrib.get('name') == 'grabs'
+                    ),
+                    0,
+                )
                 if int(grabs) > tryInt(self.conf('number_grabs')):
-                    title = re.match(r'.*Title: .a href.*/">(.*) \(\d{4}\).*', description).group(1)
+                    title = re.match(r'.*Title: .a href.*/">(.*) \(\d{4}\).*', description)[1]
                     log.info2('%s grabs for movie: %s, enqueue...', (grabs, title))
-                    year = re.match(r'.*Year: (\d{4}).*', description).group(1)
+                    year = re.match(r'.*Year: (\d{4}).*', description)[1]
                     imdb = self.search(title, year)
 
                     if imdb and self.isMinimalMovie(imdb):

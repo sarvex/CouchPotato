@@ -27,16 +27,16 @@ class Base(NZBProvider, RSS):
 
     def _searchOnTitle(self, title, movie, quality, results):
 
-        q = '%s %s' % (title, movie['info']['year'])
+        q = f"{title} {movie['info']['year']}"
         params = tryUrlencode({
             'search': q,
             'catid': ','.join([str(x) for x in self.getCatId(quality)]),
             'user': self.conf('username', default = ''),
             'api': self.conf('api_key', default = ''),
         })
-        
+
         if len(self.conf('custom_tag')) > 0:
-            params = '%s&%s' % (params, self.conf('custom_tag'))
+            params = f"{params}&{self.conf('custom_tag')}"
 
         nzbs = self.getJsonData(self.urls['search'] % params)
 

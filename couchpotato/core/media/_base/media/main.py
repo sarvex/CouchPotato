@@ -106,8 +106,7 @@ class MediaPlugin(MediaBase):
 
         for x in ids:
 
-            refresh_handler = self.createRefreshHandler(x)
-            if refresh_handler:
+            if refresh_handler := self.createRefreshHandler(x):
                 handlers.append(refresh_handler)
 
         fireEvent('notify.frontend', type = 'media.busy', data = {'_id': ids})
@@ -121,7 +120,7 @@ class MediaPlugin(MediaBase):
 
         try:
             media = get_db().get('id', media_id)
-            event = '%s.update' % media.get('type')
+            event = f"{media.get('type')}.update"
 
             def handler():
                 fireEvent(event, media_id = media_id, on_complete = self.createOnComplete(media_id))
@@ -134,17 +133,15 @@ class MediaPlugin(MediaBase):
     def addSingleRefreshView(self):
 
         for media_type in fireEvent('media.types', merge = True):
-            addApiView('%s.refresh' % media_type, self.refresh)
+            addApiView(f'{media_type}.refresh', self.refresh)
 
     def get(self, media_id):
 
         try:
             db = get_db()
 
-            imdb_id = getImdb(str(media_id))
-
-            if imdb_id:
-                media = db.get('media', 'imdb-%s' % imdb_id, with_doc = True)['doc']
+            if imdb_id := getImdb(str(media_id)):
+                media = db.get('media', f'imdb-{imdb_id}', with_doc = True)['doc']
             else:
                 media = db.get('id', media_id)
 
@@ -203,7 +200,7 @@ class MediaPlugin(MediaBase):
 
         for x in identifiers:
             try:
-                return db.get('media', '%s-%s' % (x, identifiers[x]), with_doc = with_doc)
+                return db.get('media', f'{x}-{identifiers[x]}', with_doc = with_doc)
             except:
                 pass
 
@@ -228,19 +225,23 @@ class MediaPlugin(MediaBase):
         if types:
             all_media_ids = set()
             for media_type in types:
-                all_media_ids = all_media_ids.union(set([x['_id'] for x in db.get_many('media_by_type', media_type)]))
+                all_media_ids = all_media_ids.union(
+                    {x['_id'] for x in db.get_many('media_by_type', media_type)}
+                )
         else:
-            all_media_ids = set([x['_id'] for x in db.all('media')])
+            all_media_ids = {x['_id'] for x in db.all('media')}
 
         media_ids = list(all_media_ids)
         filter_by = {}
 
         # Filter on movie status
         if status and len(status) > 0:
-            filter_by['media_status'] = set()
-            for media_status in fireEvent('media.with_status', status, with_doc = False, single = True):
-                filter_by['media_status'].add(media_status.get('_id'))
-
+            filter_by['media_status'] = {
+                media_status.get('_id')
+                for media_status in fireEvent(
+                    'media.with_status', status, with_doc=False, single=True
+                )
+            }
         # Filter on release status
         if release_status and len(release_status) > 0:
             filter_by['release_status'] = set()
@@ -332,21 +333,40 @@ class MediaPlugin(MediaBase):
 
         for media_type in fireEvent('media.types', merge = True):
             tempList = lambda *args, **kwargs : self.listView(type = media_type, **kwargs)
-            addApiView('%s.list' % media_type, tempList, docs = {
-                'desc': 'List media',
-                'params': {
-                    'status': {'type': 'array or csv', 'desc': 'Filter ' + media_type + ' by status. Example:"active,done"'},
-                    'release_status': {'type': 'array or csv', 'desc': 'Filter ' + media_type + ' by status of its releases. Example:"snatched,available"'},
-                    'limit_offset': {'desc': 'Limit and offset the ' + media_type + ' list. Examples: "50" or "50,30"'},
-                    'starts_with': {'desc': 'Starts with these characters. Example: "a" returns all ' + media_type + 's starting with the letter "a"'},
-                    'search': {'desc': 'Search ' + media_type + ' title'},
-                },
-                'return': {'type': 'object', 'example': """{
+            addApiView(
+                f'{media_type}.list',
+                tempList,
+                docs={
+                    'desc': 'List media',
+                    'params': {
+                        'status': {
+                            'type': 'array or csv',
+                            'desc': f'Filter {media_type} by status. Example:"active,done"',
+                        },
+                        'release_status': {
+                            'type': 'array or csv',
+                            'desc': f'Filter {media_type} by status of its releases. Example:"snatched,available"',
+                        },
+                        'limit_offset': {
+                            'desc': f'Limit and offset the {media_type} list. Examples: "50" or "50,30"'
+                        },
+                        'starts_with': {
+                            'desc': f'Starts with these characters. Example: "a" returns all {media_type}s starting with the letter "a"'
+                        },
+                        'search': {'desc': f'Search {media_type} title'},
+                    },
+                    'return': {
+                        'type': 'object',
+                        'example': """{
         'success': True,
-        'empty': bool, any """ + media_type + """s returned or not,
+        'empty': bool, any """
+                        + media_type
+                        + """s returned or not,
         'media': array, media found,
-    }"""}
-            })
+    }""",
+                    },
+                },
+            )
 
     def availableChars(self, types = None, status = None, release_status = None):
 
@@ -364,19 +384,23 @@ class MediaPlugin(MediaBase):
         if types:
             all_media_ids = set()
             for media_type in types:
-                all_media_ids = all_media_ids.union(set([x['_id'] for x in db.get_many('media_by_type', media_type)]))
+                all_media_ids = all_media_ids.union(
+                    {x['_id'] for x in db.get_many('media_by_type', media_type)}
+                )
         else:
-            all_media_ids = set([x['_id'] for x in db.all('media')])
+            all_media_ids = {x['_id'] for x in db.all('media')}
 
         media_ids = all_media_ids
         filter_by = {}
 
         # Filter on movie status
         if status and len(status) > 0:
-            filter_by['media_status'] = set()
-            for media_status in fireEvent('media.with_status', status, with_doc = False, single = True):
-                filter_by['media_status'].add(media_status.get('_id'))
-
+            filter_by['media_status'] = {
+                media_status.get('_id')
+                for media_status in fireEvent(
+                    'media.with_status', status, with_doc=False, single=True
+                )
+            }
         # Filter on release status
         if release_status and len(release_status) > 0:
             filter_by['release_status'] = set()
@@ -414,15 +438,14 @@ class MediaPlugin(MediaBase):
 
         for media_type in fireEvent('media.types', merge = True):
             tempChar = lambda *args, **kwargs : self.charView(type = media_type, **kwargs)
-            addApiView('%s.available_chars' % media_type, tempChar)
+            addApiView(f'{media_type}.available_chars', tempChar)
 
     def delete(self, media_id, delete_from = None):
 
         try:
             db = get_db()
 
-            media = db.get('id', media_id)
-            if media:
+            if media := db.get('id', media_id):
                 deleted = False
 
                 media_releases = fireEvent('release.for_media', media['_id'], single = True)
@@ -460,7 +483,7 @@ class MediaPlugin(MediaBase):
                         # Remove profile (no use for in manage)
                         if new_media_status == 'done':
                             media['profile_id'] = None
-                        
+
                         db.update(media)
 
                         fireEvent('media.untag', media['_id'], 'recent', single = True)
@@ -488,13 +511,23 @@ class MediaPlugin(MediaBase):
 
         for media_type in fireEvent('media.types', merge = True):
             tempDelete = lambda *args, **kwargs : self.deleteView(type = media_type, **kwargs)
-            addApiView('%s.delete' % media_type, tempDelete, docs = {
-            'desc': 'Delete a ' + media_type + ' from the wanted list',
-            'params': {
-                'id': {'desc': 'Media ID(s) you want to delete.', 'type': 'int (comma separated)'},
-                'delete_from': {'desc': 'Delete ' + media_type + ' from this page', 'type': 'string: all (default), wanted, manage'},
-            }
-        })
+            addApiView(
+                f'{media_type}.delete',
+                tempDelete,
+                docs={
+                    'desc': f'Delete a {media_type} from the wanted list',
+                    'params': {
+                        'id': {
+                            'desc': 'Media ID(s) you want to delete.',
+                            'type': 'int (comma separated)',
+                        },
+                        'delete_from': {
+                            'desc': f'Delete {media_type} from this page',
+                            'type': 'string: all (default), wanted, manage',
+                        },
+                    },
+                },
+            )
 
     def restatus(self, media_id, tag_recent = True, allowed_restatus = None):
 
@@ -513,10 +546,11 @@ class MediaPlugin(MediaBase):
                 try:
                     profile = db.get('id', m['profile_id'])
                     media_releases = fireEvent('release.for_media', m['_id'], single = True)
-                    done_releases = [release for release in media_releases if release.get('status') == 'done']
-
-                    if done_releases:
-
+                    if done_releases := [
+                        release
+                        for release in media_releases
+                        if release.get('status') == 'done'
+                    ]:
                         # Check if we are finished with the media
                         for release in done_releases:
                             if fireEvent('quality.isfinish', {'identifier': release['quality'], 'is_3d': release.get('is_3d', False)}, profile, timedelta(seconds = time.time() - release['last_edit']).days, single = True):

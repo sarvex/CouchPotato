@@ -33,11 +33,21 @@ class Matcher(MatcherBase):
             log.info2('Wrong: %s, unable to parse release name (no chains)', release['name'])
             return False
 
-        for chain in match.chains:
-            if fireEvent('%s.matcher.correct' % media['type'], chain, release, media, quality, single = True):
-                return chain
-
-        return False
+        return next(
+            (
+                chain
+                for chain in match.chains
+                if fireEvent(
+                    f"{media['type']}.matcher.correct",
+                    chain,
+                    release,
+                    media,
+                    quality,
+                    single=True,
+                )
+            ),
+            False,
+        )
 
     def correctTitle(self, chain, media):
         root = fireEvent('library.root', media, single = True)
@@ -56,7 +66,7 @@ class Matcher(MatcherBase):
         suffixes = [None, root['info']['year']]
 
         titles = [
-            title + ((' %s' % suffix) if suffix else '')
+            title + (f' {suffix}' if suffix else '')
             for title in titles
             for suffix in suffixes
         ]

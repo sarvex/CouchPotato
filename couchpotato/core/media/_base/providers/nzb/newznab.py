@@ -45,7 +45,7 @@ class Base(NZBProvider, RSS):
     def _searchOnHost(self, host, media, quality, results):
 
         query = self.buildUrl(media, host)
-        url = '%s%s' % (self.getUrl(host['host']), query)
+        url = f"{self.getUrl(host['host'])}{query}"
         nzbs = self.getRSSData(url, cache_timeout = 1800, headers = {'User-Agent': Env.getIdentifier()})
 
         for nzb in nzbs:
@@ -60,11 +60,10 @@ class Base(NZBProvider, RSS):
                     break
 
                 # Get the name of the person who posts the spot
-                if item.attrib.get('name') == 'poster':
-                    if "@spot.net" in item.attrib.get('value'):
-                        spotter = item.attrib.get('value').split("@")[0]
-                        continue
-
+                if item.attrib.get(
+                    'name'
+                ) == 'poster' and "@spot.net" in item.attrib.get('value'):
+                    spotter = item.attrib.get('value').split("@")[0]
             if not date:
                 date = self.getTextElement(nzb, 'pubDate')
 
@@ -95,14 +94,17 @@ class Base(NZBProvider, RSS):
                 try:
                     # Get details for extended description to retrieve passwords
                     query = self.buildDetailsUrl(nzb_id, host['api_key'])
-                    url = '%s%s' % (self.getUrl(host['host']), query)
+                    url = f"{self.getUrl(host['host'])}{query}"
                     nzb_details = self.getRSSData(url, cache_timeout = 1800, headers = {'User-Agent': Env.getIdentifier()})[0]
 
                     description = self.getTextElement(nzb_details, 'description')
 
-                    # Extract a password from the description
-                    password = re.search('(?:' + self.passwords_regex + ')(?: *)(?:\:|\=)(?: *)(.*?)\<br\>|\n|$', description, flags = re.I).group(1)
-                    if password:
+                    if password := re.search(
+                        f'(?:{self.passwords_regex}'
+                        + ')(?: *)(?:\:|\=)(?: *)(.*?)\<br\>|\n|$',
+                        description,
+                        flags=re.I,
+                    )[1]:
                         name += ' {{%s}}' % password.strip()
                 except:
                     log.debug('Error getting details of "%s": %s', (name, traceback.format_exc()))
@@ -164,15 +166,16 @@ class Base(NZBProvider, RSS):
         hosts = self.getHosts()
 
         for host in hosts:
-            result = super(Base, self).belongsTo(url, host = host['host'], provider = provider)
-            if result:
+            if result := super(Base, self).belongsTo(
+                url, host=host['host'], provider=provider
+            ):
                 return result
 
     def getUrl(self, host):
         if '?page=newznabapi' in host:
-            return cleanHost(host)[:-1] + '&'
+            return f'{cleanHost(host)[:-1]}&'
 
-        return cleanHost(host) + 'api?'
+        return f'{cleanHost(host)}api?'
 
     def isDisabled(self, host = None):
         return not self.isEnabled(host)
@@ -181,23 +184,20 @@ class Base(NZBProvider, RSS):
 
         # Return true if at least one is enabled and no host is given
         if host is None:
-            for host in self.getHosts():
-                if self.isEnabled(host):
-                    return True
-            return False
-
+            return next((True for host in self.getHosts() if self.isEnabled(host)), False)
         return NZBProvider.isEnabled(self) and host['host'] and host['api_key'] and int(host['use'])
 
     def getApiExt(self, host):
-        return '&apikey=%s' % host['api_key']
+        return f"&apikey={host['api_key']}"
 
     def download(self, url = '', nzb_id = ''):
         host = urlparse(url).hostname
 
-        if self.limits_reached.get(host):
-            # Try again in 3 hours
-            if self.limits_reached[host] > time.time() - 10800:
-                return 'try_next'
+        if (
+            self.limits_reached.get(host)
+            and self.limits_reached[host] > time.time() - 10800
+        ):
+            return 'try_next'
 
         try:
             data = self.urlopen(url, show_error = False, headers = {'User-Agent': Env.getIdentifier()})
@@ -218,12 +218,13 @@ class Base(NZBProvider, RSS):
         return 'try_next'
 
     def buildDetailsUrl(self, nzb_id, api_key):
-        query = tryUrlencode({
-            't': 'details',
-            'id': nzb_id,
-            'apikey': api_key,
-        })
-        return query
+        return tryUrlencode(
+            {
+                't': 'details',
+                'id': nzb_id,
+                'apikey': api_key,
+            }
+        )
 
 
 

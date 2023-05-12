@@ -43,9 +43,7 @@ class SettingsCommon(TestCase):
 
         sec = 'sec'
         opt = 'opt'
-        s.types[sec] = {}
-        s.types[sec][opt] = 'directories'
-
+        s.types[sec] = {opt: 'directories'}
         s.p = MagicMock()
         s.p.get.return_value = raw
 
@@ -146,7 +144,9 @@ class OptionMetaSuite(TestCase):
         s.p.getboolean = Mock(return_value=True)
 
         # there is no META-record for our option:
-        s.p.has_option = Mock(side_effect=lambda s, o: not (s == section and o == option_meta))
+        s.p.has_option = Mock(
+            side_effect=lambda s, o: s != section or o != option_meta
+        )
 
         # by default all options are writable and readable
         self.assertTrue(s.isOptionWritable(section, option))
@@ -159,9 +159,7 @@ class OptionMetaSuite(TestCase):
         option = 'url'
 
         def mock_get_meta_ro(s, o):
-            if (s == section and o == option_meta):
-                return 'ro'
-            return 11
+            return 'ro' if (s == section and o == option_meta) else 11
 
         option_meta = option + self.meta
         # setup mock

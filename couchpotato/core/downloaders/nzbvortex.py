@@ -110,7 +110,7 @@ class NZBVortex(DownloaderBase):
         log.info('%s failed downloading, deleting...', release_download['name'])
 
         try:
-            self.call('nzb/%s/cancel' % release_download['temp_id'])
+            self.call(f"nzb/{release_download['temp_id']}/cancel")
         except:
             log.error('Failed deleting: %s', traceback.format_exc(0))
             return False
@@ -121,7 +121,9 @@ class NZBVortex(DownloaderBase):
 
         nonce = self.call('auth/nonce', auth = False).get('authNonce')
         cnonce = uuid4().hex
-        hashed = b64encode(hashlib.sha256('%s:%s:%s' % (nonce, cnonce, self.conf('api_key'))).digest())
+        hashed = b64encode(
+            hashlib.sha256(f"{nonce}:{cnonce}:{self.conf('api_key')}").digest()
+        )
 
         params = {
             'nonce': nonce,
@@ -155,17 +157,21 @@ class NZBVortex(DownloaderBase):
         url = cleanHost(self.conf('host')) + 'api/' + call
 
         try:
-            data = self.getJsonData('%s%s' % (url, '?' + params if params else ''), *args, cache_timeout = 0, show_error = False, **kwargs)
+            data = self.getJsonData(
+                f"{url}{f'?{params}' if params else ''}",
+                *args,
+                cache_timeout=0,
+                show_error=False,
+                **kwargs,
+            )
 
             if data:
                 return data
         except HTTPError as e:
             sc = e.response.status_code
-            if sc == 403:
-                # Try login and do again
-                if not is_repeat:
-                    self.login()
-                    return self.call(call, parameters = parameters, is_repeat = True, **kwargs)
+            if sc == 403 and not is_repeat:
+                self.login()
+                return self.call(call, parameters = parameters, is_repeat = True, **kwargs)
 
             log.error('Failed to parsing %s: %s', (self.getName(), traceback.format_exc()))
         except:

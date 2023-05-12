@@ -45,15 +45,21 @@ class Base(NZBProvider):
                     size_match = re.search('size:.(?P<size>[0-9\.]+.[GMB]+)', info.text)
 
                     age = 0
-                    try: age = re.search('(?P<size>\d+d)', row.find_all('td')[-1:][0].text).group('size')[:-1]
+                    try:
+                        age = re.search('(?P<size>\d+d)', row.find_all('td')[-1:][0].text)['size'][:-1]
                     except: pass
 
                     def extra_check(item):
                         parts = re.search('available:.(?P<parts>\d+)./.(?P<total>\d+)', info.text)
-                        total = float(tryInt(parts.group('total')))
-                        parts = float(tryInt(parts.group('parts')))
+                        total = float(tryInt(parts['total']))
+                        parts = float(tryInt(parts['parts']))
 
-                        if (total / parts) < 1 and ((total / parts) < 0.95 or ((total / parts) >= 0.95 and not ('par2' in info.text.lower() or 'pa3' in info.text.lower()))):
+                        if (total / parts) < 1 and (
+                            (total / parts) < 0.95
+                            or (total / parts) >= 0.95
+                            and 'par2' not in info.text.lower()
+                            and 'pa3' not in info.text.lower()
+                        ):
                             log.info2('Wrong: \'%s\', not complete: %s out of %s', (item['name'], parts, total))
                             return False
 
@@ -63,15 +69,18 @@ class Base(NZBProvider):
 
                         return True
 
-                    results.append({
-                        'id': nzb_id,
-                        'name': simplifyString(title.text),
-                        'age': tryInt(age),
-                        'size': self.parseSize(size_match.group('size')),
-                        'url': self.urls['download'] % nzb_id,
-                        'detail_url': self.urls['detail'] % info.find('a')['href'],
-                        'extra_check': extra_check
-                    })
+                    results.append(
+                        {
+                            'id': nzb_id,
+                            'name': simplifyString(title.text),
+                            'age': tryInt(age),
+                            'size': self.parseSize(size_match['size']),
+                            'url': self.urls['download'] % nzb_id,
+                            'detail_url': self.urls['detail']
+                            % info.find('a')['href'],
+                            'extra_check': extra_check,
+                        }
+                    )
 
             except:
                 log.error('Failed to parse HTML response from BinSearch: %s', traceback.format_exc())

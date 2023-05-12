@@ -29,7 +29,7 @@ class Base(TorrentProvider):
 
     def _searchOnTitle(self, title, media, quality, results):
 
-        query = '"%s" %s' % (title, media['info']['year'])
+        query = f""""{title}" {media['info']['year']}"""
 
         data = {
             'q': query,
@@ -63,9 +63,8 @@ class Base(TorrentProvider):
         }
 
     def loginSuccess(self, output):
-        often = re.search('You tried too often, please wait .*</div>', output)
-        if often:
-            raise Exception(often.group(0)[:-6].strip())
+        if often := re.search('You tried too often, please wait .*</div>', output):
+            raise Exception(often[0][:-6].strip())
 
         return 'Password not correct' not in output
 

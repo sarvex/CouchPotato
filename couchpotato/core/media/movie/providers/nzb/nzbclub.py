@@ -24,4 +24,4 @@ class NZBClub(MovieProvider, Base):
             'sp': 1,
             'ns': 1,
         })
-        return '%s&%s' % (q, query)
+        return f'{q}&{query}'

@@ -32,11 +32,11 @@ class ITunes(Automation, RSS):
         for url in urls:
 
             index += 1
-            if len(enablers) == 0 or len(enablers) < index or not enablers[index]:
+            if not enablers or len(enablers) < index or not enablers[index]:
                 continue
 
             try:
-                cache_key = 'itunes.rss.%s' % md5(url)
+                cache_key = f'itunes.rss.{md5(url)}'
                 rss_data = self.getCache(cache_key, url)
 
                 data = XMLTree.fromstring(rss_data)

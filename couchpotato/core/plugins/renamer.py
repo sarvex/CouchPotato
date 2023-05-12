@@ -101,12 +101,12 @@ class Renamer(Plugin):
             release_download = {'folder': media_folder}
 
             if download_id:
-                release_download.update({
+                release_download |= {
                     'id': download_id,
                     'downloader': downloader,
                     'status': status,
-                    'files': files
-                })
+                    'files': files,
+                }
 
         fire_handle = fireEvent if not async else fireEventAsync
         fire_handle('renamer.scan', base_folder = base_folder, release_download = release_download, to_folder = to_folder)

@@ -117,14 +117,11 @@ class CoreNotifier(Notification):
         else:
             results = db.all('notification', limit = 200, with_doc = True)
 
-        notifications = []
-        for n in results:
-            notifications.append(n['doc'])
-
+        notifications = [n['doc'] for n in results]
         return {
             'success': True,
-            'empty': len(notifications) == 0,
-            'notifications': notifications
+            'empty': not notifications,
+            'notifications': notifications,
         }
 
     def checkMessages(self):

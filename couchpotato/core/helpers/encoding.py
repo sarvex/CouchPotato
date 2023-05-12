@@ -14,7 +14,7 @@ log = CPLog(__name__)
 
 
 def toSafeString(original):
-    valid_chars = "-_.() %s%s" % (ascii_letters, digits)
+    valid_chars = f"-_.() {ascii_letters}{digits}"
     cleaned_filename = unicodedata.normalize('NFKD', toUnicode(original)).encode('ASCII', 'ignore')
     valid_string = ''.join(c for c in cleaned_filename if c in valid_chars)
     return ' '.join(valid_string.split())
@@ -31,25 +31,24 @@ def toUnicode(original, *args):
     try:
         if isinstance(original, unicode):
             return original
-        else:
+        try:
+            return six.text_type(original, *args)
+        except:
             try:
-                return six.text_type(original, *args)
+                from couchpotato.environment import Env
+                return original.decode(Env.get("encoding"))
             except:
                 try:
-                    from couchpotato.environment import Env
-                    return original.decode(Env.get("encoding"))
-                except:
+                    detected = detect(original)
                     try:
-                        detected = detect(original)
-                        try:
-                            if detected.get('confidence') > 0.8:
-                                return original.decode(detected.get('encoding'))
-                        except:
-                            pass
-
-                        return ek(original, *args)
+                        if detected.get('confidence') > 0.8:
+                            return original.decode(detected.get('encoding'))
                     except:
-                        raise
+                        pass
+
+                    return ek(original, *args)
+                except:
+                    raise
     except:
         log.error('Unable to decode value "%s..." : %s ', (repr(original)[:20], traceback.format_exc()))
         return 'ERROR DECODING STRING'

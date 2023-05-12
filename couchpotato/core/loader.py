@@ -67,7 +67,6 @@ class Loader(object):
                     # todo:: subclass ImportError for missing requirements.
                     if e.message.lower().startswith("missing"):
                         log.error(e.message)
-                        pass
                     # todo:: this needs to be more descriptive.
                     log.error('Import error, remove the empty folder: %s', plugin.get('module'))
                     log.debug('Can\'t import %s: %s', (module_name, traceback.format_exc()))
@@ -83,7 +82,7 @@ class Loader(object):
             path = os.path.join(root_path, filename)
             if os.path.isdir(path) and filename[:2] != '__':
                 if six.u('__init__.py') in os.listdir(path):
-                    new_base_path = ''.join(s + '.' for s in base_path) + filename
+                    new_base_path = ''.join(f'{s}.' for s in base_path) + filename
                     self.paths[new_base_path.replace('.', '_')] = (priority, new_base_path, path)
 
                 if recursive:
@@ -107,7 +106,7 @@ class Loader(object):
             if name != 'static' and ((os.path.isdir(path) and os.path.isfile(os.path.join(path, '__init__.py')))
                                      or (os.path.isfile(path) and ext == '.py')):
                 name = name[:-ext_length] if ext_length > 0 else name
-                module_name = '%s.%s' % (module, name)
+                module_name = f'{module}.{name}'
                 self.addModule(priority, plugin_type, module_name, name)
 
     def loadSettings(self, module, name, save = True):

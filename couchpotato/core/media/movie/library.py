@@ -24,7 +24,7 @@ class MovieLibraryPlugin(LibraryBase):
 
         # Add year identifier to titles
         if include_year:
-            titles = [title + (' %s' % str(media['info']['year'])) for title in titles]
+            titles = [f"{title} {str(media['info']['year'])}" for title in titles]
 
         if first:
             return titles[0] if titles else None

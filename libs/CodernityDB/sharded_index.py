@@ -59,14 +59,11 @@ class ShardedIndex(Index):
         self.shards_r = {}
 #        ind_class = globals()[self.ind_class]
         ind_class = self.ind_class
-        i = 0
-        for sh_name in [self.name + str(x) for x in xrange(self.sh_nums)]:
+        for i, sh_name in enumerate(self.name + str(x) for x in xrange(self.sh_nums)):
             # dict is better than list in that case
             self.shards[i] = ind_class(self.db_path, sh_name, *args, **kwargs)
             self.shards_r['%02x' % i] = self.shards[i]
             self.shards_r[i] = self.shards[i]
-            i += 1
-
         if not self.use_make_keys:
             self.make_key = self.shards[0].make_key
             self.make_key_value = self.shards[0].make_key_value
@@ -75,8 +72,7 @@ class ShardedIndex(Index):
 
     @property
     def storage(self):
-        st = self.shards[self.last_used].storage
-        return st
+        return self.shards[self.last_used].storage
 
     def __getattr__(self, name):
         return getattr(self.shards[self.last_used], name)
@@ -103,10 +99,8 @@ class ShardedIndex(Index):
 
     def all(self, *args, **kwargs):
         for curr in self.shards.itervalues():
-            for now in curr.all(*args, **kwargs):
-                yield now
+            yield from curr.all(*args, **kwargs)
 
     def get_many(self, *args, **kwargs):
         for curr in self.shards.itervalues():
-            for now in curr.get_many(*args, **kwargs):
-                yield now
+            yield from curr.get_many(*args, **kwargs)

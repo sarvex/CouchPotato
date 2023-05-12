@@ -106,10 +106,7 @@ class qBittorrent(DownloaderBase):
         if torrent['state'] in ('uploading', 'queuedUP', 'stalledUP'):
             return 'seeding'
 
-        if torrent['progress'] == 1:
-            return 'completed'
-
-        return 'busy'
+        return 'completed' if torrent['progress'] == 1 else 'busy'
 
     def getAllDownloadStatus(self, ids):
         """ Get status of all active downloads
@@ -142,9 +139,7 @@ class qBittorrent(DownloaderBase):
 
                     if len(torrent_filelist) > 1 and os.path.isdir(torrent_dir): # multi file torrent, path.isdir check makes sure we're not in the root download folder
                         for root, _, files in os.walk(torrent['save_path']):
-                            for f in files:
-                                torrent_files.append(sp(os.path.join(root, f)))
-
+                            torrent_files.extend(sp(os.path.join(root, f)) for f in files)
                     else: # multi or single file placed directly in torrent.save_path
                         for f in torrent_filelist:
                             file_path = os.path.join(torrent['save_path'], f['name'])

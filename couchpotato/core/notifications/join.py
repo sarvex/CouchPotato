@@ -27,7 +27,7 @@ class Join(Notification):
         apikey = self.conf('apikey')
         if apikey is not None:
             # Add apikey to request url
-            self.url = self.url + '&apikey=' + apikey
+            self.url = f'{self.url}&apikey={apikey}'
             # If api key is present, default to sending to all devices
             device_default = ['group.all']
 
@@ -39,7 +39,7 @@ class Join(Notification):
             if response:
                 successful += 1
             else:
-                log.error('Unable to push notification to Join device with ID %s' % device)
+                log.error(f'Unable to push notification to Join device with ID {device}')
 
         return successful == len(devices)
 

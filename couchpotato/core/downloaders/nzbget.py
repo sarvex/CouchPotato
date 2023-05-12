@@ -46,12 +46,14 @@ class NZBGet(DownloaderBase):
 
         log.info('Sending "%s" to NZBGet.', data.get('name'))
 
-        nzb_name = ss('%s.nzb' % self.createNzbName(data, media))
+        nzb_name = ss(f'{self.createNzbName(data, media)}.nzb')
 
         rpc = self.getRPC()
 
         try:
-            if rpc.writelog('INFO', 'CouchPotato connected to drop off %s.' % nzb_name):
+            if rpc.writelog(
+                'INFO', f'CouchPotato connected to drop off {nzb_name}.'
+            ):
                 log.debug('Successfully connected to NZBGet')
             else:
                 log.info('Successfully connected to NZBGet, but unable to send a message')
@@ -73,11 +75,12 @@ class NZBGet(DownloaderBase):
         if xml_response:
             log.info('NZB sent successfully to NZBGet')
             nzb_id = md5(data['url'])  # about as unique as they come ;)
-            couchpotato_id = "couchpotato=" + nzb_id
+            couchpotato_id = f"couchpotato={nzb_id}"
             groups = rpc.listgroups()
             file_id = [item['LastID'] for item in groups if item['NZBFilename'] == nzb_name]
-            confirmed = rpc.editqueue("GroupSetParameter", 0, couchpotato_id, file_id)
-            if confirmed:
+            if confirmed := rpc.editqueue(
+                "GroupSetParameter", 0, couchpotato_id, file_id
+            ):
                 log.debug('couchpotato parameter set in nzbget download')
             return self.downloadReturnId(nzb_id)
         else:
@@ -158,7 +161,12 @@ class NZBGet(DownloaderBase):
                 log.debug('Found %s in NZBGet download queue', nzb['NZBFilename'])
                 timeleft = -1
                 try:
-                    if nzb['ActiveDownloads'] > 0 and nzb['DownloadRate'] > 0 and not (status['DownloadPaused'] or status['Download2Paused']):
+                    if (
+                        nzb['ActiveDownloads'] > 0
+                        and nzb['DownloadRate'] > 0
+                        and not status['DownloadPaused']
+                        and not status['Download2Paused']
+                    ):
                         timeleft = str(timedelta(seconds = nzb['RemainingSizeMB'] / status['DownloadRate'] * 2 ^ 20))
                 except:
                     pass

@@ -18,8 +18,9 @@ class Bitsoup(MovieProvider, Base):
     cat_backup_id = 0
 
     def buildUrl(self, title, media, quality):
-        query = tryUrlencode({
-            'search': '"%s" %s' % (title, media['info']['year']),
-            'cat': self.getCatId(quality)[0],
-        })
-        return query
+        return tryUrlencode(
+            {
+                'search': f""""{title}" {media['info']['year']}""",
+                'cat': self.getCatId(quality)[0],
+            }
+        )

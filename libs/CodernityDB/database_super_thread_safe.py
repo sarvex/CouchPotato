@@ -52,12 +52,13 @@ class SuperLock(type):
         for base in bases:
             for b_attr in dir(base):
                 a = getattr(base, b_attr, None)
-                if isinstance(a, MethodType) and not b_attr.startswith('_'):
-                    if b_attr == 'flush' or b_attr == 'flush_indexes':
-                        pass
-                    else:
-                        # setattr(base, b_attr, SuperLock.wrapper(a))
-                        new_attr[b_attr] = SuperLock.wrapper(a)
+                if (
+                    isinstance(a, MethodType)
+                    and not b_attr.startswith('_')
+                    and b_attr not in ['flush', 'flush_indexes']
+                ):
+                    # setattr(base, b_attr, SuperLock.wrapper(a))
+                    new_attr[b_attr] = SuperLock.wrapper(a)
         for attr_name, attr_value in attr.iteritems():
             if isinstance(attr_value, FunctionType) and not attr_name.startswith('_'):
                 attr_value = SuperLock.wrapper(attr_value)
@@ -83,11 +84,11 @@ class SuperThreadSafeDatabase(Database):
         ind = self.indexes_names[name]
         for c in ('all', 'get_many'):
             m = getattr(ind, c)
-            if getattr(ind, c + "_orig", None):
+            if getattr(ind, f"{c}_orig", None):
                 return
             m_fixed = th_safe_gen.wrapper(m, name, c, self.super_lock)
             setattr(ind, c, m_fixed)
-            setattr(ind, c + '_orig', m)
+            setattr(ind, f'{c}_orig', m)
 
     def open(self, *args, **kwargs):
         res = super(SuperThreadSafeDatabase, self).open(*args, **kwargs)

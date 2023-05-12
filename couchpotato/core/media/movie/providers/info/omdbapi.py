@@ -40,11 +40,11 @@ class OMDBAPI(MovieProvider):
                 'name': q
             }
 
-        cache_key = 'omdbapi.cache.%s' % q
+        cache_key = f'omdbapi.cache.{q}'
         url = self.urls['search'] % (self.getApiKey(), tryUrlencode({'t': name_year.get('name'), 'y': name_year.get('year', '')}))
-        cached = self.getCache(cache_key, url, timeout = 3, headers = {'User-Agent': Env.getIdentifier()})
-
-        if cached:
+        if cached := self.getCache(
+            cache_key, url, timeout=3, headers={'User-Agent': Env.getIdentifier()}
+        ):
             result = self.parseMovie(cached)
             if result.get('titles') and len(result.get('titles')) > 0:
                 log.info('Found: %s', result['titles'][0] + ' (' + str(result.get('year')) + ')')
@@ -58,11 +58,11 @@ class OMDBAPI(MovieProvider):
         if self.isDisabled() or not identifier:
             return {}
 
-        cache_key = 'omdbapi.cache.%s' % identifier
+        cache_key = f'omdbapi.cache.{identifier}'
         url = self.urls['info'] % (self.getApiKey(), identifier)
-        cached = self.getCache(cache_key, url, timeout = 3, headers = {'User-Agent': Env.getIdentifier()})
-
-        if cached:
+        if cached := self.getCache(
+            cache_key, url, timeout=3, headers={'User-Agent': Env.getIdentifier()}
+        ):
             result = self.parseMovie(cached)
             if result.get('titles') and len(result.get('titles')) > 0:
                 log.info('Found: %s', result['titles'][0] + ' (' + str(result['year']) + ')')
@@ -82,7 +82,7 @@ class OMDBAPI(MovieProvider):
                 log.info('No proper json to decode')
                 return movie_data
 
-            if movie.get('Response') == 'Parse Error' or movie.get('Response') == 'False':
+            if movie.get('Response') in ['Parse Error', 'False']:
                 return movie_data
 
             if movie.get('Type').lower() != 'movie':
@@ -119,7 +119,7 @@ class OMDBAPI(MovieProvider):
                 'writers': splitString(movie.get('Writer', '')),
                 'actors': splitString(movie.get('Actors', '')),
             }
-            movie_data = dict((k, v) for k, v in movie_data.items() if v)
+            movie_data = {k: v for k, v in movie_data.items() if v}
         except:
             log.error('Failed parsing IMDB API json: %s', traceback.format_exc())
 
@@ -132,8 +132,7 @@ class OMDBAPI(MovieProvider):
         return False
 
     def getApiKey(self):
-        apikey = self.conf('api_key')
-        return apikey
+        return self.conf('api_key')
 
     def runtimeToMinutes(self, runtime_str):
         runtime = 0

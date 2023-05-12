@@ -23,8 +23,7 @@ _threadpools = set()
 # to allow worker threads to finish cleanly.
 def _shutdown_all():
     for pool_ref in tuple(_threadpools):
-        pool = pool_ref()
-        if pool:
+        if pool := pool_ref():
             pool.shutdown()
 
 atexit.register(_shutdown_all)

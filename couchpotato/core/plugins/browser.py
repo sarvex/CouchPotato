@@ -60,7 +60,7 @@ class FileBrowser(Plugin):
         for f in os.listdir(path):
             p = sp(os.path.join(path, f))
             if os.path.isdir(p) and ((self.is_hidden(p) and bool(int(show_hidden))) or not self.is_hidden(p)):
-                dirs.append(toUnicode('%s%s' % (p, os.path.sep)))
+                dirs.append(toUnicode(f'{p}{os.path.sep}'))
 
         return sorted(dirs)
 
@@ -69,21 +69,25 @@ class FileBrowser(Plugin):
 
     def getDriveLetters(self):
 
-        driveletters = []
-        for drive in string.ascii_uppercase:
-            if win32file.GetDriveType(drive + ':') in [win32file.DRIVE_FIXED, win32file.DRIVE_REMOTE, win32file.DRIVE_RAMDISK, win32file.DRIVE_REMOVABLE]:
-                driveletters.append(drive + ':\\')
-
-        return driveletters
+        return [
+            drive + ':\\'
+            for drive in string.ascii_uppercase
+            if win32file.GetDriveType(f'{drive}:')
+            in [
+                win32file.DRIVE_FIXED,
+                win32file.DRIVE_REMOTE,
+                win32file.DRIVE_RAMDISK,
+                win32file.DRIVE_REMOVABLE,
+            ]
+        ]
 
     def view(self, path = '/', show_hidden = True, **kwargs):
 
         soft_chroot = Env.get('softchroot')
-        
+
         home = getUserDir()
-        if soft_chroot.enabled:
-            if not soft_chroot.is_subdir(home):
-                home = soft_chroot.get_chroot()
+        if soft_chroot.enabled and not soft_chroot.is_subdir(home):
+            home = soft_chroot.get_chroot()
 
         if not path:
             path = home

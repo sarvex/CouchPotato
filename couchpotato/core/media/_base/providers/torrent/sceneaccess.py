@@ -28,9 +28,7 @@ class Base(TorrentProvider):
     def _searchOnTitle(self, title, media, quality, results):
 
         url = self.buildUrl(title, media, quality)
-        data = self.getHTMLData(url)
-
-        if data:
+        if data := self.getHTMLData(url):
             html = BeautifulSoup(data)
 
             try:
@@ -62,7 +60,9 @@ class Base(TorrentProvider):
                 log.error('Failed getting results from %s: %s', (self.getName(), traceback.format_exc()))
 
     def getMoreInfo(self, item):
-        full_description = self.getCache('sceneaccess.%s' % item['id'], item['detail_url'], cache_timeout = 25920000)
+        full_description = self.getCache(
+            f"sceneaccess.{item['id']}", item['detail_url'], cache_timeout=25920000
+        )
         html = BeautifulSoup(full_description)
         nfo_pre = html.find('div', attrs = {'id': 'details_table'})
         description = toUnicode(nfo_pre.text) if nfo_pre else ''

@@ -58,8 +58,7 @@ class TheMovieDb(MovieProvider):
 
         self.languages = languages
 
-        configuration = self.request('configuration')
-        if configuration:
+        if configuration := self.request('configuration'):
             self.configuration = configuration
 
     def search(self, q, limit = 3):
@@ -87,8 +86,7 @@ class TheMovieDb(MovieProvider):
                 nr = 0
 
                 for movie in raw:
-                    parsed_movie = self.parseMovie(movie, extended = False)
-                    if parsed_movie:
+                    if parsed_movie := self.parseMovie(movie, extended=False):
                         results.append(parsed_movie)
 
                     nr += 1
@@ -118,24 +116,47 @@ class TheMovieDb(MovieProvider):
     def parseMovie(self, movie, extended = True):
 
         # Do request, append other items
-        movie = self.request('movie/%s' % movie.get('id'), {
-            'append_to_response': 'alternative_titles' + (',images,casts' if extended else ''),
-            'language': 'en'
-        })
+        movie = self.request(
+            f"movie/{movie.get('id')}",
+            {
+                'append_to_response': 'alternative_titles'
+                + (',images,casts' if extended else ''),
+                'language': 'en',
+            },
+        )
         if not movie:
             return
 
-        movie_default = movie if self.default_language == 'en' else self.request('movie/%s' % movie.get('id'), {
-            'append_to_response': 'alternative_titles' + (',images,casts' if extended else ''),
-			'language': self.default_language
-        })
+        movie_default = (
+            movie
+            if self.default_language == 'en'
+            else self.request(
+                f"movie/{movie.get('id')}",
+                {
+                    'append_to_response': 'alternative_titles'
+                    + (',images,casts' if extended else ''),
+                    'language': self.default_language,
+                },
+            )
+        )
 
         movie_default = movie_default or movie
 
-        movie_others = [ self.request('movie/%s' % movie.get('id'), {
-            'append_to_response': 'alternative_titles' + (',images,casts' if extended else ''),
-			'language': language
-        }) for language in self.languages] if self.languages else []
+        movie_others = (
+            [
+                self.request(
+                    f"movie/{movie.get('id')}",
+                    {
+                        'append_to_response': 'alternative_titles'
+                        + (',images,casts' if extended else ''),
+                        'language': language,
+                    },
+                )
+                for language in self.languages
+            ]
+            if self.languages
+            else []
+        )
 
         # Images
         poster = self.getImage(movie, type = 'poster', size = 'w154')
@@ -194,7 +215,7 @@ class TheMovieDb(MovieProvider):
             'actor_roles': actors
         }
 
-        movie_data = dict((k, v) for k, v in movie_data.items() if v)
+        movie_data = {k: v for k, v in movie_data.items() if v}
 
         # Add alternative names
         movies = [ movie ] + movie_others if movie == movie_default else [ movie, movie_default ] + movie_others
@@ -216,9 +237,8 @@ class TheMovieDb(MovieProvider):
 
         image_url = ''
         try:
-            path = movie.get('%s_path' % type)
-            if path:
-                image_url = '%s%s%s' % (self.configuration['images']['secure_base_url'], size, path)
+            if path := movie.get(f'{type}_path'):
+                image_url = f"{self.configuration['images']['secure_base_url']}{size}{path}"
         except:
             log.debug('Failed getting %s.%s for "%s"', (type, size, ss(str(movie))))
 
@@ -228,8 +248,10 @@ class TheMovieDb(MovieProvider):
 
         image_urls = []
         try:
-            for image in movie.get('images', {}).get(type, [])[1:5]:
-                image_urls.append(self.getImage(image, 'file', size))
+            image_urls.extend(
+                self.getImage(image, 'file', size)
+                for image in movie.get('images', {}).get(type, [])[1:5]
+            )
         except:
             log.debug('Failed getting %s.%s for "%s"', (type, size, ss(str(movie))))
 
@@ -237,11 +259,11 @@ class TheMovieDb(MovieProvider):
 
     def request(self, call = '', params = {}, return_key = None):
 
-        params = dict((k, v) for k, v in params.items() if v)
+        params = {k: v for k, v in params.items() if v}
         params = tryUrlencode(params)
 
         try:
-            url = 'https://api.themoviedb.org/3/%s?api_key=%s%s' % (call, self.getApiKey(), '&%s' % params if params else '')
+            url = f"https://api.themoviedb.org/3/{call}?api_key={self.getApiKey()}{f'&{params}' if params else ''}"
             data = self.getJsonData(url, show_error = False)
         except:
             log.debug('Movie not found: %s, %s', (call, params))
@@ -264,10 +286,7 @@ class TheMovieDb(MovieProvider):
 
     def getLanguages(self):
         languages = splitString(Env.setting('languages', section = 'core'))
-        if len(languages):
-            return languages
-
-        return [ 'en' ]
+        return languages if len(languages) else [ 'en' ]
 
     def getTitles(self, movie):
         # add the title to the list

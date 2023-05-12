@@ -23,13 +23,13 @@ class Notification(Provider):
     dont_listen_to = []
 
     def __init__(self):
-        addEvent('notify.%s' % self.getName().lower(), self._notify)
+        addEvent(f'notify.{self.getName().lower()}', self._notify)
 
         addApiView(self.testNotifyName(), self.test)
 
         # Attach listeners
         for listener in self.listen_to:
-            if not listener in self.dont_listen_to:
+            if listener not in self.dont_listen_to:
                 addEvent(listener, self.createNotifyHandler(listener))
 
     def createNotifyHandler(self, listener):
@@ -43,12 +43,10 @@ class Notification(Provider):
         return notify
 
     def getNotificationImage(self, size = 'small'):
-        return 'https://raw.github.com/CouchPotato/CouchPotatoServer/master/couchpotato/static/images/notify.couch.%s.png' % size
+        return f'https://raw.github.com/CouchPotato/CouchPotatoServer/master/couchpotato/static/images/notify.couch.{size}.png'
 
     def _notify(self, *args, **kwargs):
-        if self.isEnabled():
-            return self.notify(*args, **kwargs)
-        return False
+        return self.notify(*args, **kwargs) if self.isEnabled() else False
 
     def notify(self, message = '', data = None, listener = None):
         if not data: data = {}
@@ -70,4 +68,4 @@ class Notification(Provider):
         }
 
     def testNotifyName(self):
-        return 'notify.%s.test' % self.getName().lower()
+        return f'notify.{self.getName().lower()}.test'

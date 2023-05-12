@@ -18,9 +18,9 @@ class Base(TorrentMagnetProvider):
     def _search(self, movie, quality, results):
         limit = 10
         page = 1
-        data = self.getJsonData(self.urls['search'] % (getIdentifier(movie), limit, page))
-
-        if data:
+        if data := self.getJsonData(
+            self.urls['search'] % (getIdentifier(movie), limit, page)
+        ):
             movie_count = tryInt(data['data']['movie_count'])
 
             if movie_count == 0:
@@ -46,28 +46,30 @@ class Base(TorrentMagnetProvider):
                             pubdate = datetime.strptime(pubdate, '%Y-%m-%d %H:%M:%S')
                             age = (datetime.now() - pubdate).days
 
-                            results.append({
-                                'id': random.randint(100, 9999),
-                                'name': '%s (%s) %s %s %s' % (name, year, 'YTS', t_quality, 'BR-Rip'),
-                                'url': self.make_magnet(hash, name),
-                                'size': size,
-                                'seeders': seeders,
-                                'leechers': leechers,
-                                'age': age,
-                                'detail_url': detail_url,
-                                'score': 1
-                            })
+                            results.append(
+                                {
+                                    'id': random.randint(100, 9999),
+                                    'name': f'{name} ({year}) YTS {t_quality} BR-Rip',
+                                    'url': self.make_magnet(hash, name),
+                                    'size': size,
+                                    'seeders': seeders,
+                                    'leechers': leechers,
+                                    'age': age,
+                                    'detail_url': detail_url,
+                                    'score': 1,
+                                }
+                            )
 
         return
 
     def make_magnet(self, hash, name):
         url_encoded_trackers = 'udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce&tr=%0Audp%3A%2F%2Ftracker.openbittorr' \
-                               'ent.com%3A80&tr=%0Audp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=%0Audp%3A%2F%2Fglot' \
-                               'orrents.pw%3A6969%2Fannounce&tr=%0Audp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannou' \
-                               'nce&tr=%0Audp%3A%2F%2Ftorrent.gresille.org%3A80%2Fannounce&tr=%0Audp%3A%2F%2Fp4p.are' \
-                               'nabg.com%3A1337&tr=%0Audp%3A%2F%2Ftracker.leechers-paradise.org%3A6969]'
+                                   'ent.com%3A80&tr=%0Audp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=%0Audp%3A%2F%2Fglot' \
+                                   'orrents.pw%3A6969%2Fannounce&tr=%0Audp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannou' \
+                                   'nce&tr=%0Audp%3A%2F%2Ftorrent.gresille.org%3A80%2Fannounce&tr=%0Audp%3A%2F%2Fp4p.are' \
+                                   'nabg.com%3A1337&tr=%0Audp%3A%2F%2Ftracker.leechers-paradise.org%3A6969]'
 
-        return 'magnet:?xt=urn:btih:%s&dn=%s&tr=%s' % (hash, name.replace(' ', '+'), url_encoded_trackers)
+        return f"magnet:?xt=urn:btih:{hash}&dn={name.replace(' ', '+')}&tr={url_encoded_trackers}"
 
 
 config = [{

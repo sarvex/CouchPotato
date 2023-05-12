@@ -32,7 +32,11 @@ class Base(NZBProvider, RSS):
             date = self.getTextElement(nzb, "pubDate")
 
             def extra_check(item):
-                full_description = self.getCache('nzbclub.%s' % nzbclub_id, item['detail_url'], cache_timeout = 25920000)
+                full_description = self.getCache(
+                    f'nzbclub.{nzbclub_id}',
+                    item['detail_url'],
+                    cache_timeout=25920000,
+                )
 
                 for ignored in ['ARCHIVE inside ARCHIVE', 'Incomplete', 'repair impossible']:
                     if ignored in full_description:
@@ -53,7 +57,9 @@ class Base(NZBProvider, RSS):
             })
 
     def getMoreInfo(self, item):
-        full_description = self.getCache('nzbclub.%s' % item['id'], item['detail_url'], cache_timeout = 25920000)
+        full_description = self.getCache(
+            f"nzbclub.{item['id']}", item['detail_url'], cache_timeout=25920000
+        )
         html = BeautifulSoup(full_description)
         nfo_pre = html.find('pre', attrs = {'class': 'nfo'})
         description = toUnicode(nfo_pre.text) if nfo_pre else ''
@@ -62,7 +68,9 @@ class Base(NZBProvider, RSS):
         return item
 
     def extraCheck(self, item):
-        full_description = self.getCache('nzbclub.%s' % item['id'], item['detail_url'], cache_timeout = 25920000)
+        full_description = self.getCache(
+            f"nzbclub.{item['id']}", item['detail_url'], cache_timeout=25920000
+        )
 
         if 'ARCHIVE inside ARCHIVE' in full_description:
             log.info('Wrong: Seems to be passworded files: %s', item['name'])

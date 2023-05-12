@@ -55,14 +55,19 @@ class DownloaderBase(Provider):
         addEvent('download.remove_failed', self._removeFailed)
         addEvent('download.pause', self._pause)
         addEvent('download.process_complete', self._processComplete)
-        addApiView('download.%s.test' % self.getName().lower(), self._test)
+        addApiView(f'download.{self.getName().lower()}.test', self._test)
 
     def getEnabledProtocol(self):
-        for download_protocol in self.protocol:
-            if self.isEnabled(manual = True, data = {'protocol': download_protocol}):
-                return self.protocol
-
-        return []
+        return next(
+            (
+                self.protocol
+                for download_protocol in self.protocol
+                if self.isEnabled(
+                    manual=True, data={'protocol': download_protocol}
+                )
+            ),
+            [],
+        )
 
     def _download(self, data = None, media = None, manual = False, filedata = None):
         if not media: media = {}
@@ -79,9 +84,11 @@ class DownloaderBase(Provider):
         if self.isDisabled(manual = True, data = {}):
             return
 
-        ids = [download_id['id'] for download_id in download_ids if download_id['downloader'] == self.getName()]
-
-        if ids:
+        if ids := [
+            download_id['id']
+            for download_id in download_ids
+            if download_id['downloader'] == self.getName()
+        ]:
             return self.getAllDownloadStatus(ids)
         else:
             return

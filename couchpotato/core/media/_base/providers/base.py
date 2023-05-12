@@ -32,7 +32,7 @@ class MultiProvider(Plugin):
             klass = Type()
 
             # Overwrite name so logger knows what we're talking about
-            klass.setName('%s:%s' % (self.getName(), klass.getName()))
+            klass.setName(f'{self.getName()}:{klass.getName()}')
 
             self._classes.append(klass)
 
@@ -73,9 +73,7 @@ class Provider(Plugin):
     def getJsonData(self, url, decode_from = None, **kwargs):
 
         cache_key = md5(url)
-        data = self.getCache(cache_key, url, **kwargs)
-
-        if data:
+        if data := self.getCache(cache_key, url, **kwargs):
             try:
                 data = data.strip()
                 if decode_from:
@@ -132,13 +130,10 @@ class YarrProvider(Provider):
     def __init__(self):
         addEvent('provider.enabled_protocols', self.getEnabledProtocol)
         addEvent('provider.belongs_to', self.belongsTo)
-        addEvent('provider.search.%s.%s' % (self.protocol, self.type), self.search)
+        addEvent(f'provider.search.{self.protocol}.{self.type}', self.search)
 
     def getEnabledProtocol(self):
-        if self.isEnabled():
-            return self.protocol
-        else:
-            return []
+        return self.protocol if self.isEnabled() else []
 
     def buildUrl(self, *args, **kwargs):
         pass
@@ -169,11 +164,14 @@ class YarrProvider(Provider):
 
             error = 'unknown'
         except Exception as e:
-            if isinstance(e, HTTPError):
-                if e.response.status_code >= 400 and e.response.status_code < 500:
-                    self.login_failures += 1
-                    if self.login_failures >= 3:
-                        self.disableAccount()
+            if (
+                isinstance(e, HTTPError)
+                and e.response.status_code >= 400
+                and e.response.status_code < 500
+            ):
+                self.login_failures += 1
+                if self.login_failures >= 3:
+                    self.disableAccount()
             error = traceback.format_exc()
 
         self.last_login_check = None
@@ -244,11 +242,10 @@ class YarrProvider(Provider):
             hostname = urlparse(url).hostname
             if host and hostname in host:
                 return self
-            else:
-                for url_type in self.urls:
-                    download_url = self.urls[url_type]
-                    if hostname in download_url:
-                        return self
+            for url_type in self.urls:
+                download_url = self.urls[url_type]
+                if hostname in download_url:
+                    return self
         except:
             log.debug('Url %s doesn\'t belong to %s', (url, self.getName()))
 
@@ -267,28 +264,21 @@ class YarrProvider(Provider):
             if s in size_raw:
                 return size
 
-        for s in self.size_kb:
-            if s in size_raw:
-                return size / 1024
-
-        return 0
+        return next((size / 1024 for s in self.size_kb if s in size_raw), 0)
 
     def getCatId(self, quality = None):
         if not quality: quality = {}
         identifier = quality.get('identifier')
 
-        want_3d = False
-        if quality.get('custom'):
-            want_3d = quality['custom'].get('3d')
-
-        for ids, qualities in self.cat_ids:
-            if identifier in qualities or (want_3d and '3d' in qualities):
-                return ids
-
-        if self.cat_backup_id:
-            return [self.cat_backup_id]
-
-        return []
+        want_3d = quality['custom'].get('3d') if quality.get('custom') else False
+        return next(
+            (
+                ids
+                for ids, qualities in self.cat_ids
+                if identifier in qualities or (want_3d and '3d' in qualities)
+            ),
+            [self.cat_backup_id] if self.cat_backup_id else [],
+        )
 
     def disableAccount(self):
         log.error("Failed %s login, disabling provider. "
@@ -370,6 +360,6 @@ class ResultList(list):
         if not new_result.get('provider_extra'):
             new_result['provider_extra'] = ''
         else:
-            new_result['provider_extra'] = ', %s' % new_result['provider_extra']
+            new_result['provider_extra'] = f", {new_result['provider_extra']}"
 
         log.info('Found: score(%(score)s) on %(provider)s%(provider_extra)s: %(name)s', new_result)

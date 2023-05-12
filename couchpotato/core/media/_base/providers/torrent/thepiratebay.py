@@ -79,18 +79,27 @@ class Base(TorrentMagnetProvider):
                         download = result.find(href = re.compile('magnet:'))
 
                         try:
-                            size = re.search('Size (?P<size>.+),', six.text_type(result.select('font.detDesc')[0])).group('size')
+                            size = re.search(
+                                'Size (?P<size>.+),',
+                                six.text_type(result.select('font.detDesc')[0]),
+                            )['size']
                         except:
                             continue
 
                         if link and download:
-                            if self.conf('trusted_only'):
-                                if result.find('img', alt = re.compile('Trusted')) is None and \
-                                                result.find('img', alt = re.compile('VIP')) is None and \
-                                                result.find('img', alt = re.compile('Helpers')) is None and \
-                                                result.find('img', alt = re.compile('Moderator')) is None:
-                                    log.info('Skipped torrent %s, untrusted.' % link.string)
-                                    continue
+                            if (
+                                self.conf('trusted_only')
+                                and result.find('img', alt=re.compile('Trusted'))
+                                is None
+                                and result.find('img', alt=re.compile('VIP'))
+                                is None
+                                and result.find('img', alt=re.compile('Helpers'))
+                                is None
+                                and result.find('img', alt=re.compile('Moderator'))
+                                is None
+                            ):
+                                log.info(f'Skipped torrent {link.string}, untrusted.')
+                                continue
 
                             def extra_score(item):
                                 trusted = (0, 10)[result.find('img', alt = re.compile('Trusted')) is not None]
@@ -100,17 +109,25 @@ class Base(TorrentMagnetProvider):
 
                                 return confirmed + trusted + vip + moderated
 
-                            results.append({
-                                'id': re.search('/(?P<id>\d+)/', link['href']).group('id'),
-                                'name': six.text_type(link.string),
-                                'url': download['href'],
-                                'detail_url': self.getDomain(link['href']),
-                                'size': self.parseSize(size),
-                                'seeders': tryInt(result.find_all('td')[2].string),
-                                'leechers': tryInt(result.find_all('td')[3].string),
-                                'extra_score': extra_score,
-                                'get_more_info': self.getMoreInfo
-                            })
+                            results.append(
+                                {
+                                    'id': re.search('/(?P<id>\d+)/', link['href'])[
+                                        'id'
+                                    ],
+                                    'name': six.text_type(link.string),
+                                    'url': download['href'],
+                                    'detail_url': self.getDomain(link['href']),
+                                    'size': self.parseSize(size),
+                                    'seeders': tryInt(
+                                        result.find_all('td')[2].string
+                                    ),
+                                    'leechers': tryInt(
+                                        result.find_all('td')[3].string
+                                    ),
+                                    'extra_score': extra_score,
+                                    'get_more_info': self.getMoreInfo,
+                                }
+                            )
 
                 except:
                     log.error('Failed getting results from %s: %s', (self.getName(), traceback.format_exc()))
@@ -122,7 +139,9 @@ class Base(TorrentMagnetProvider):
         return 'title="Pirate Search"' in data
 
     def getMoreInfo(self, item):
-        full_description = self.getCache('tpb.%s' % item['id'], item['detail_url'], cache_timeout = 25920000)
+        full_description = self.getCache(
+            f"tpb.{item['id']}", item['detail_url'], cache_timeout=25920000
+        )
         html = BeautifulSoup(full_description)
         nfo_pre = html.find('div', attrs = {'class': 'nfo'})
         description = ''
@@ -138,7 +157,7 @@ class Base(TorrentMagnetProvider):
 
         for url in self.proxy_list:
             try:
-                data = self.urlopen(url + '/search/test+search')
+                data = self.urlopen(f'{url}/search/test+search')
 
                 if 'value="test+search"' in data:
                     log.info('Success %s', url)

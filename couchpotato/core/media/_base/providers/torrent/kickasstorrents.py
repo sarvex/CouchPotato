@@ -56,61 +56,59 @@ class Base(TorrentMagnetProvider):
 
     def _search(self, media, quality, results):
 
-        data = self.getHTMLData(self.urls['search'] % (self.getDomain(), 'm', getIdentifier(media).replace('tt', '')))
+        if not (
+            data := self.getHTMLData(
+                self.urls['search']
+                % (self.getDomain(), 'm', getIdentifier(media).replace('tt', ''))
+            )
+        ):
+            return
+        cat_ids = self.getCatId(quality)
+        table_order = ['name', 'size', None, 'age', 'seeds', 'leechers']
 
-        if data:
+        try:
+            html = BeautifulSoup(data)
+            resultdiv = html.find('div', attrs = {'class': 'tabs'})
+            for result in resultdiv.find_all('div', recursive = False):
+                if result.get('id').lower().strip('tab-') not in cat_ids:
+                    continue
 
-            cat_ids = self.getCatId(quality)
-            table_order = ['name', 'size', None, 'age', 'seeds', 'leechers']
+                try:
+                    for temp in result.find_all('tr'):
+                        if temp['class'] is 'firstr' or not temp.get('id'):
+                            continue
 
-            try:
-                html = BeautifulSoup(data)
-                resultdiv = html.find('div', attrs = {'class': 'tabs'})
-                for result in resultdiv.find_all('div', recursive = False):
-                    if result.get('id').lower().strip('tab-') not in cat_ids:
-                        continue
+                        new = {}
 
-                    try:
-                        for temp in result.find_all('tr'):
-                            if temp['class'] is 'firstr' or not temp.get('id'):
-                                continue
+                        for nr, td in enumerate(temp.find_all('td')):
+                            if column_name := table_order[nr]:
+                                if column_name == 'name':
+                                    link = td.find('div', {'class': 'torrentname'}).find_all('a')[2]
+                                    new['id'] = temp.get('id')[-7:]
+                                    new['name'] = link.text
+                                    new['url'] = td.find('a', {'href': re.compile('magnet:*')})['href']
+                                    new['detail_url'] = self.urls['detail'] % (self.getDomain(), link['href'][1:])
+                                    new['verified'] = bool(td.find('i', {'class': re.compile('verify')}))
+                                    new['score'] = 100 if new['verified'] else 0
+                                elif column_name is 'size':
+                                    new['size'] = self.parseSize(td.text)
+                                elif column_name is 'age':
+                                    new['age'] = self.ageToDays(td.text)
+                                elif column_name is 'seeds':
+                                    new['seeders'] = tryInt(td.text)
+                                elif column_name is 'leechers':
+                                    new['leechers'] = tryInt(td.text)
 
-                            new = {}
+                        # Only store verified torrents
+                        if self.conf('only_verified') and not new['verified']:
+                            continue
 
-                            nr = 0
-                            for td in temp.find_all('td'):
-                                column_name = table_order[nr]
-                                if column_name:
+                        results.append(new)
+                except:
+                    log.error('Failed parsing KickAssTorrents: %s', traceback.format_exc())
 
-                                    if column_name == 'name':
-                                        link = td.find('div', {'class': 'torrentname'}).find_all('a')[2]
-                                        new['id'] = temp.get('id')[-7:]
-                                        new['name'] = link.text
-                                        new['url'] = td.find('a', {'href': re.compile('magnet:*')})['href']
-                                        new['detail_url'] = self.urls['detail'] % (self.getDomain(), link['href'][1:])
-                                        new['verified'] = True if td.find('i', {'class': re.compile('verify')}) else False
-                                        new['score'] = 100 if new['verified'] else 0
-                                    elif column_name is 'size':
-                                        new['size'] = self.parseSize(td.text)
-                                    elif column_name is 'age':
-                                        new['age'] = self.ageToDays(td.text)
-                                    elif column_name is 'seeds':
-                                        new['seeders'] = tryInt(td.text)
-                                    elif column_name is 'leechers':
-                                        new['leechers'] = tryInt(td.text)
-
-                                nr += 1
-
-                            # Only store verified torrents
-                            if self.conf('only_verified') and not new['verified']:
-                                continue
-
-                            results.append(new)
-                    except:
-                        log.error('Failed parsing KickAssTorrents: %s', traceback.format_exc())
-
-            except AttributeError:
-                log.debug('No search results found.')
+        except AttributeError:
+            log.debug('No search results found.')
 
     def ageToDays(self, age_str):
         age = 0

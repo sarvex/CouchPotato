@@ -79,10 +79,11 @@ class Index(object):
         self.db_path = db_path
 
     def open_index(self):
-        if not os.path.isfile(os.path.join(self.db_path, self.name + '_buck')):
+        if not os.path.isfile(os.path.join(self.db_path, f'{self.name}_buck')):
             raise IndexException("Doesn't exists")
         self.buckets = io.open(
-            os.path.join(self.db_path, self.name + "_buck"), 'r+b', buffering=0)
+            os.path.join(self.db_path, f"{self.name}_buck"), 'r+b', buffering=0
+        )
         self._fix_params()
         self._open_storage()
 
@@ -159,7 +160,7 @@ class Index(object):
 
     def destroy(self, *args, **kwargs):
         self._close()
-        bucket_file = os.path.join(self.db_path, self.name + '_buck')
+        bucket_file = os.path.join(self.db_path, f'{self.name}_buck')
         os.unlink(bucket_file)
         self._destroy_storage()
         self._find_key.clear()

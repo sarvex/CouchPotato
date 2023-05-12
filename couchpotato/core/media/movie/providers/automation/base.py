@@ -51,20 +51,21 @@ class Automation(AutomationBase):
         except UnicodeEncodeError:
             cache_name = unicodedata.normalize('NFKD', name).encode('ascii','ignore')
 
-        prop_name = 'automation.cached.%s.%s' % (cache_name, year)
+        prop_name = f'automation.cached.{cache_name}.{year}'
         cached_imdb = Env.prop(prop_name, default = False)
         if cached_imdb and imdb_only:
             return cached_imdb
 
-        result = fireEvent('movie.search', q = '%s %s' % (name, year if year else ''), limit = 1, merge = True)
+        result = fireEvent(
+            'movie.search', q=f"{name} {year if year else ''}", limit=1, merge=True
+        )
 
-        if len(result) > 0:
-            if imdb_only and result[0].get('imdb'):
-                Env.prop(prop_name, result[0].get('imdb'))
-
-            return result[0].get('imdb') if imdb_only else result[0]
-        else:
+        if len(result) <= 0:
             return None
+        if imdb_only and result[0].get('imdb'):
+            Env.prop(prop_name, result[0].get('imdb'))
+
+        return result[0].get('imdb') if imdb_only else result[0]
 
     def isMinimalMovie(self, movie):
         if not movie.get('rating'):

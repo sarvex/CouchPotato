@@ -57,9 +57,7 @@ class Score(Plugin):
         # Ignore single downloads from multipart
         score += halfMultipartScore(nzb['name'])
 
-        # Extra provider specific check
-        extra_score = nzb.get('extra_score')
-        if extra_score:
+        if extra_score := nzb.get('extra_score'):
             score += extra_score(nzb)
 
         # Scene / Nuke scoring

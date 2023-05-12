@@ -184,12 +184,10 @@ def database_from_steps(db_obj, path):
             elif name in ('delete', 'update'):
                 el = db_obj.get('id', line[1][0]['_id'])
                 line[1][0]['_rev'] = el['_rev']
-#                print 'FROM STEPS doing', line
-            meth = getattr(db_obj, line[0], None)
-            if not meth:
-                raise Exception("Method = `%s` not found" % line[0])
-
-            meth(*line[1], **line[2])
+            if meth := getattr(db_obj, line[0], None):
+                meth(*line[1], **line[2])
+            else:
+                raise Exception(f"Method = `{line[0]}` not found")
 
 
 # def insert_for_debug(self, data):

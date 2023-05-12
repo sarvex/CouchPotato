@@ -46,11 +46,7 @@ class Parser(object):
         pass
 
     def parse(self, data, name=None):
-        if not name:
-            self.name = "_" + uuid.uuid4().hex
-        else:
-            self.name = name
-
+        self.name = f"_{uuid.uuid4().hex}" if not name else name
         self.ind = 0
         self.stage = 0
         self.logic = ['and', 'or', 'in']
@@ -178,6 +174,7 @@ class Parser(object):
         def is_string(s):
             m = re.search('\s*(?P<a>[\'\"]+).*?(?P=a)\s*', s)
             return m
+
         data = re.split('make_key_value\:', data)
 
         if len(data) < 2:
@@ -197,13 +194,13 @@ class Parser(object):
         else:
             data.append("key")
 
-        if data[1] == re.search('\s*', data[1], re.S | re.M).group(0):
+        if data[1] == re.search('\s*', data[1], re.S | re.M)[0]:
             raise IndexCreatorFunctionException("Empty function body ",
                                                 len(re.split('\n', data[0])) + (len(re.split('\n', data[2])) if self.funcs_rev else 1) - 1)
-        if data[2] == re.search('\s*', data[2], re.S | re.M).group(0):
+        if data[2] == re.search('\s*', data[2], re.S | re.M)[0]:
             raise IndexCreatorFunctionException("Empty function body ",
                                                 len(re.split('\n', data[0])) + (1 if self.funcs_rev else len(re.split('\n', data[1]))) - 1)
-        if data[0] == re.search('\s*', data[0], re.S | re.M).group(0):
+        if data[0] == re.search('\s*', data[0], re.S | re.M)[0]:
             raise IndexCreatorValueException("You didn't set any properity or you set them not at the begining of the code\n")
 
         data = [re.split(
@@ -214,16 +211,20 @@ class Parser(object):
         self.data = [[], [], []]
         for i, v in enumerate(self.predata[0]):
             for k, w in enumerate(self.predata[0][i]):
-                if self.predata[0][i][k] in self.props_assign:
-                    if not is_num(self.predata[0][i][k + 1:]) and self.predata[0][i].strip()[:4] != 'type' and self.predata[0][i].strip()[:4] != 'name':
-                        s = self.predata[0][i][k + 1:]
-                        self.predata[0][i] = self.predata[0][i][:k + 1]
+                if (
+                    self.predata[0][i][k] in self.props_assign
+                    and not is_num(self.predata[0][i][k + 1 :])
+                    and self.predata[0][i].strip()[:4] != 'type'
+                    and self.predata[0][i].strip()[:4] != 'name'
+                ):
+                    s = self.predata[0][i][k + 1:]
+                    self.predata[0][i] = self.predata[0][i][:k + 1]
 
-                        m = re.search('\s+', s.strip())
-                        if not is_string(s) and not m:
-                            s = "'" + s.strip() + "'"
-                        self.predata[0][i] += s
-                        break
+                    m = re.search('\s+', s.strip())
+                    if not is_string(s) and not m:
+                        s = f"'{s.strip()}'"
+                    self.predata[0][i] += s
+                    break
 
         for n, i in enumerate(self.predata):
             for k in i:
@@ -273,7 +274,12 @@ class Parser(object):
         self.custom_header = set()
 
         self.tokens = []
-        self.tokens_head = ['# %s\n' % self.name, 'class %s(' % self.name, '):\n', '    def __init__(self, *args, **kwargs):        ']
+        self.tokens_head = [
+            '# %s\n' % self.name,
+            f'class {self.name}(',
+            '):\n',
+            '    def __init__(self, *args, **kwargs):        ',
+        ]
 
         for i in xrange(3):
             tokenize.tokenize(self.readline(i), self.add(self.pre_tokens, i))
@@ -315,13 +321,12 @@ class Parser(object):
             for k in i:
                 self.handle_make_key(*k)
 
-        if self.index_type == "":
+        if not self.index_type:
             raise IndexCreatorValueException("Missing index type definition\n")
-        if self.index_name == "":
+        if not self.index_name:
             raise IndexCreatorValueException("Missing index name\n")
 
-        self.tokens_head[0] = "# " + self.index_name + "\n" + \
-            self.tokens_head[0]
+        self.tokens_head[0] = (f"# {self.index_name}" + "\n" + self.tokens_head[0])
 
         for i in self.funcs_with_body:
             if self.funcs_with_body[i][1]:
@@ -339,7 +344,9 @@ class Parser(object):
         if self.index_type in self.allowed_props:
             for i in self.props_set:
                 if i not in self.allowed_props[self.index_type]:
-                    raise IndexCreatorValueException("Properity %s is not allowed for index type: %s" % (i, self.index_type))
+                    raise IndexCreatorValueException(
+                        f"Properity {i} is not allowed for index type: {self.index_type}"
+                    )
 
         # print "".join(self.tokens_head)
         # print "----------"
@@ -381,15 +388,17 @@ class Parser(object):
                 nex = d[n + 1][1] if d[n + 1][0] == token.OP else d[n + 1][0]
 
             if prev not in self.allowed_adjacent[cur]:
-                raise IndexCreatorValueException("Wrong left value of the %s" % cur, self.cnt_line_nr(line, st))
+                raise IndexCreatorValueException(
+                    f"Wrong left value of the {cur}", self.cnt_line_nr(line, st)
+                )
 
-            # there is an assumption that whole data always ends with 0 marker, the idea prolly needs a rewritting to allow more whitespaces
-            # between tokens, so it will be handled anyway
             elif nex not in self.allowed_adjacent[cur][prev]:
-                raise IndexCreatorValueException("Wrong right value of the %s" % cur, self.cnt_line_nr(line, st))
+                raise IndexCreatorValueException(
+                    f"Wrong right value of the {cur}", self.cnt_line_nr(line, st)
+                )
 
         for n, (t, i, _, _, line) in enumerate(d):
-            if t == token.NAME or t == token.STRING:
+            if t in [token.NAME, token.STRING]:
                 if n + 1 < len(d) and d[n + 1][0] in [token.NAME, token.STRING]:
                     raise IndexCreatorValueException("Did you forget about an operator in between?", self.cnt_line_nr(line, st))
             elif i in self.allowed_adjacent:
@@ -472,7 +481,7 @@ class Parser(object):
                 elif t == token.NAME:
                     self.known_dicts_in_mkv.append((i, (n, r)))
                     return 0
-                elif t == token.STRING or t == token.NUMBER:
+                elif t in [token.STRING, token.NUMBER]:
                     raise IndexCreatorValueException("Second return value of make_key_value function has to be a dictionary!", self.cnt_line_nr(line, 1))
 
         for ind in enumerate(d):

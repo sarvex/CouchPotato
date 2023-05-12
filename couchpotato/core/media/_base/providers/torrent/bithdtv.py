@@ -26,11 +26,9 @@ class Base(TorrentProvider):
 
         query = self.buildUrl(media, quality)
 
-        url = "%s&%s" % (self.urls['search'], query)
+        url = f"{self.urls['search']}&{query}"
 
-        data = self.getHTMLData(url, headers = self.getRequestHeaders())
-
-        if data:
+        if data := self.getHTMLData(url, headers=self.getRequestHeaders()):
             # Remove BiT-HDTV's output garbage so outdated BS4 versions successfully parse the HTML
             split_data = data.partition('-->')
             if '## SELECT COUNT(' in split_data[0]:
@@ -71,13 +69,15 @@ class Base(TorrentProvider):
                 log.error('Failed getting results from %s: %s', (self.getName(), traceback.format_exc()))
 
     def getRequestHeaders(self):
-        cookies = 'h_sl={};h_sp={};h_su={}'.format(self.conf('cookiesettingsl') or '', self.conf('cookiesettingsp') or '', self.conf('cookiesettingsu') or '')
+        cookies = f"h_sl={self.conf('cookiesettingsl') or ''};h_sp={self.conf('cookiesettingsp') or ''};h_su={self.conf('cookiesettingsu') or ''}"
         return {
             'Cookie': cookies
         }
 
     def getMoreInfo(self, item):
-        full_description = self.getCache('bithdtv.%s' % item['id'], item['detail_url'], cache_timeout = 25920000)
+        full_description = self.getCache(
+            f"bithdtv.{item['id']}", item['detail_url'], cache_timeout=25920000
+        )
         html = BeautifulSoup(full_description)
         nfo_pre = html.find('table', attrs = {'class': 'detail'})
         description = toUnicode(nfo_pre.text) if nfo_pre else ''

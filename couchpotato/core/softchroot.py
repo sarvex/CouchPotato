@@ -50,7 +50,7 @@ class SoftChroot:
         Raises:
             RuntimeError: when `SoftChroot` is not initialized OR enabled
         """
-        if None == self.enabled:
+        if self.enabled is None:
             raise RuntimeError('SoftChroot is not initialized')
         if not self.enabled:
             raise RuntimeError('SoftChroot is not enabled')
@@ -59,10 +59,10 @@ class SoftChroot:
 
     def is_root_abs(self, abspath):
         """ Checks whether absolute path @abspath is the root in the soft-chrooted environment"""
-        if None == self.enabled:
+        if self.enabled is None:
             raise RuntimeError('SoftChroot is not initialized')
 
-        if None == abspath:
+        if abspath is None:
             raise ValueError('abspath can not be None')
 
         if not self.enabled:
@@ -76,10 +76,10 @@ class SoftChroot:
 
     def is_subdir(self, abspath):
         """ Checks whether @abspath is subdir (on any level) of soft-chroot"""
-        if None == self.enabled:
+        if self.enabled is None:
             raise RuntimeError('SoftChroot is not initialized')
 
-        if None == abspath:
+        if abspath is None:
             return False
 
         if not self.enabled:
@@ -93,12 +93,12 @@ class SoftChroot:
     def chroot2abs(self, path):
         """ Converts chrooted path to absolute path"""
 
-        if None == self.enabled:
+        if self.enabled is None:
             raise RuntimeError('SoftChroot is not initialized')
         if not self.enabled:
             return path
 
-        if None == path or len(path)==0:
+        if path is None or len(path) == 0:
             return self.chdir
 
         if not path.startswith(os.path.sep):
@@ -109,10 +109,10 @@ class SoftChroot:
     def abs2chroot(self, path, force = False):
         """ Converts absolute path to chrooted path"""
 
-        if None == self.enabled:
+        if self.enabled is None:
             raise RuntimeError('SoftChroot is not initialized')
 
-        if None == path:
+        if path is None:
             raise ValueError('path is empty')
 
         if not self.enabled:
@@ -122,13 +122,11 @@ class SoftChroot:
             return '/'
 
         resulst = None
-        if not path.startswith(self.chdir):
-            if (force):
-                result = self.get_chroot()
-            else:
-                raise ValueError("path must starts with 'chdir': %s" % path)
-        else:
-            l = len(self.chdir)-1
-            result = path[l:]
+        if path.startswith(self.chdir):
+            result = path[len(self.chdir)-1:]
 
+        elif force:
+            result = self.get_chroot()
+        else:
+            raise ValueError(f"path must starts with 'chdir': {path}")
         return result

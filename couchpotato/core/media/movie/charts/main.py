@@ -35,7 +35,7 @@ class Charts(Plugin):
 
                 try:
                     try:
-                        in_library = db.get('media', 'imdb-%s' % identifier)
+                        in_library = db.get('media', f'imdb-{identifier}')
                         if in_library:
                             continue
                     except RecordNotFound:
@@ -46,7 +46,7 @@ class Charts(Plugin):
                 # Cache poster
                 posters = media.get('images', {}).get('poster', [])
                 poster = [x for x in posters if 'tmdb' in x]
-                posters = poster if len(poster) > 0 else posters
+                posters = poster if poster else posters
 
                 cached_poster = fireEvent('file.download', url = posters[0], single = True) if len(posters) > 0 else False
                 files = {'image_poster': [cached_poster] } if cached_poster else {}

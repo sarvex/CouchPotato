@@ -38,22 +38,24 @@ class Searcher(SearcherBase):
 
     def searchAllView(self):
 
-        results = {}
-        for _type in fireEvent('media.types'):
-            results[_type] = fireEvent('%s.searcher.all_view' % _type)
-
-        return results
+        return {
+            _type: fireEvent(f'{_type}.searcher.all_view')
+            for _type in fireEvent('media.types')
+        }
 
     def getProgressForAll(self):
-        progress = fireEvent('searcher.progress', merge = True)
-        return progress
+        return fireEvent('searcher.progress', merge = True)
 
     def search(self, protocols, media, quality):
         results = []
 
         for search_protocol in protocols:
-            protocol_results = fireEvent('provider.search.%s.%s' % (search_protocol, media.get('type')), media, quality, merge = True)
-            if protocol_results:
+            if protocol_results := fireEvent(
+                f"provider.search.{search_protocol}.{media.get('type')}",
+                media,
+                quality,
+                merge=True,
+            ):
                 results += protocol_results
 
         sorted_results = sorted(results, key = lambda k: k['score'], reverse = True)
@@ -69,7 +71,9 @@ class Searcher(SearcherBase):
         download_protocols = fireEvent('download.enabled_protocols', merge = True)
         provider_protocols = fireEvent('provider.enabled_protocols', merge = True)
 
-        if download_protocols and len(list(set(provider_protocols) & set(download_protocols))) == 0:
+        if download_protocols and not list(
+            set(provider_protocols) & set(download_protocols)
+        ):
             log.error('There aren\'t any providers enabled for your downloader (%s). Check your settings.', ','.join(download_protocols))
             return []
 
@@ -89,9 +93,12 @@ class Searcher(SearcherBase):
 
         found = {}
 
-        # Try guessing via quality tags
-        guess = fireEvent('quality.guess', files = [nzb.get('name')], size = nzb.get('size', None), single = True)
-        if guess:
+        if guess := fireEvent(
+            'quality.guess',
+            files=[nzb.get('name')],
+            size=nzb.get('size', None),
+            single=True,
+        ):
             found[guess['identifier']] = True
 
         # Hack for older movies that don't contain quality tag
@@ -99,7 +106,11 @@ class Searcher(SearcherBase):
         size = nzb.get('size', 0)
 
         year_name = fireEvent('scanner.name_year', name, single = True)
-        if len(found) == 0 and movie_year < datetime.datetime.now().year - 3 and not year_name.get('year', None):
+        if (
+            not found
+            and movie_year < datetime.datetime.now().year - 3
+            and not year_name.get('year', None)
+        ):
             if size > 20000:  # Assume bd50
                 log.info('Quality was missing in name, assuming it\'s a BR-Disk based on the size: %s', size)
                 found['bd50'] = True
@@ -126,12 +137,8 @@ class Searcher(SearcherBase):
 
         threed = preferred_quality['custom'].get('3d')
 
-        # Try guessing via quality tags
-        guess = fireEvent('quality.guess', [nzb.get('name')], single = True)
-
-        if guess:
+        if guess := fireEvent('quality.guess', [nzb.get('name')], single=True):
             return threed == guess.get('is_3d')
-        # If no quality guess, assume not 3d
         else:
             return threed == False
 
@@ -157,7 +164,8 @@ class Searcher(SearcherBase):
         check_names = [check_name]
 
         # Match names between "
-        try: check_names.append(re.search(r'([\'"])[^\1]*\1', check_name).group(0))
+        try:
+            check_names.append(re.search(r'([\'"])[^\1]*\1', check_name)[0])
         except: pass
 
         # Match longest name between []
@@ -171,7 +179,11 @@ class Searcher(SearcherBase):
                 check_words = removeEmpty(re.split('\W+', check_movie.get('name', '')))
                 movie_words = removeEmpty(re.split('\W+', simplifyString(movie_name)))
 
-                if len(check_words) > 0 and len(movie_words) > 0 and len(list(set(check_words) - set(movie_words))) == 0:
+                if (
+                    len(check_words) > 0
+                    and len(movie_words) > 0
+                    and not list(set(check_words) - set(movie_words))
+                ):
                     return True
             except:
                 pass
@@ -181,7 +193,7 @@ class Searcher(SearcherBase):
     def containsWords(self, rel_name, rel_words, conf, media):
 
         # Make sure it has required words
-        words = splitString(self.conf('%s_words' % conf, section = 'searcher').lower())
+        words = splitString(self.conf(f'{conf}_words', section = 'searcher').lower())
         try: words = removeDuplicate(words + splitString(media['category'][conf].lower()))
         except: pass
 
@@ -216,8 +228,7 @@ class Searcher(SearcherBase):
 
         # Ignore porn stuff
         pron_tags = ['xxx', 'sex', 'anal', 'tits', 'fuck', 'porn', 'orgy', 'milf', 'boobs', 'erotica', 'erotic', 'cock', 'dick']
-        pron_words = list(set(rel_words) & set(pron_tags) - set(media_words))
-        if pron_words:
+        if pron_words := list(set(rel_words) & set(pron_tags) - set(media_words)):
             log.info('Wrong: %s, probably pr0n', rel_name)
             return False
 

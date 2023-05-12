@@ -25,8 +25,6 @@ class Trakt(Notification, TraktBase):
         if listener == 'test':
             result = self.call((self.urls['test']))
 
-            return result
-
         else:
 
             post_data = {
@@ -37,7 +35,8 @@ class Trakt(Notification, TraktBase):
             if self.conf('remove_watchlist_enabled'):
                 result = result and self.call((self.urls['unwatchlist']), post_data)
 
-            return result
+
+        return result
 
 
 config = [{

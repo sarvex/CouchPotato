@@ -68,7 +68,10 @@ class Transmission(DownloaderBase):
 
         if self.conf('directory'):
             host = cleanHost(self.conf('host')).rstrip('/').rsplit(':', 1)
-            if os.path.isdir(self.conf('directory')) or not (host[0] == '127.0.0.1' or host[0] == 'localhost'):
+            if os.path.isdir(self.conf('directory')) or host[0] not in [
+                '127.0.0.1',
+                'localhost',
+            ]:
                 params['download-dir'] = self.conf('directory').rstrip(os.path.sep)
             else:
                 log.error('Download directory from Transmission settings: %s doesn\'t exist', self.conf('directory'))
@@ -108,9 +111,7 @@ class Transmission(DownloaderBase):
         :return: bool
         """
 
-        if self.connect() and self.trpc.get_session():
-            return True
-        return False
+        return bool(self.connect() and self.trpc.get_session())
 
     def getAllDownloadStatus(self, ids):
         """ Get status of all active downloads
@@ -155,22 +156,26 @@ class Transmission(DownloaderBase):
                 """
 
                 status = 'busy'
-                if torrent.get('isStalled') and not torrent['percentDone'] == 1 and self.conf('stalled_as_failed'):
+                if (
+                    torrent.get('isStalled')
+                    and torrent['percentDone'] != 1
+                    and self.conf('stalled_as_failed')
+                ):
                     status = 'failed'
                 elif torrent['status'] == 0 and torrent['percentDone'] == 1 and torrent['isFinished']:
                     status = 'completed'
                 elif torrent['status'] in [5, 6]:
                     status = 'seeding'
 
-                if session['incomplete-dir-enabled'] and status == 'busy':
-                    torrent_folder = session['incomplete-dir']
-                else:
-                    torrent_folder = torrent['downloadDir']
-
-                torrent_files = []
-                for file_item in torrent['files']:
-                    torrent_files.append(sp(os.path.join(torrent_folder, file_item['name'])))
-
+                torrent_folder = (
+                    session['incomplete-dir']
+                    if session['incomplete-dir-enabled'] and status == 'busy'
+                    else torrent['downloadDir']
+                )
+                torrent_files = [
+                    sp(os.path.join(torrent_folder, file_item['name']))
+                    for file_item in torrent['files']
+                ]
                 release_downloads.append({
                     'id': torrent['hashString'],
                     'name': torrent['name'],
@@ -206,7 +211,7 @@ class TransmissionRPC(object):
 
         super(TransmissionRPC, self).__init__()
 
-        self.url = host + ':' + str(port) + '/' + rpc_url + '/rpc'
+        self.url = f'{host}:{str(port)}/{rpc_url}/rpc'
         self.tag = 0
         self.session_id = 0
         self.session = {}
@@ -245,8 +250,7 @@ class TransmissionRPC(object):
             elif err.code == 409:
                 msg = str(err.read())
                 try:
-                    self.session_id = \
-                        re.search('X-Transmission-Session-Id:\s*(\w+)', msg).group(1)
+                    self.session_id = re.search('X-Transmission-Session-Id:\s*(\w+)', msg)[1]
                     log.debug('X-Transmission-Session-Id: %s', self.session_id)
 
                     # #resend request with the updated header

@@ -24,52 +24,68 @@ class Base(TorrentProvider):
     login_fail_msg = 'Your apikey is not valid! Go to HD4Free and reset your apikey.'
 
     def _search(self, movie, quality, results):
-        data = self.getJsonData(self.urls['search'] % (self.conf('apikey'), self.conf('username'), getIdentifier(movie), self.conf('internal_only')))
+        if not (
+            data := self.getJsonData(
+                self.urls['search']
+                % (
+                    self.conf('apikey'),
+                    self.conf('username'),
+                    getIdentifier(movie),
+                    self.conf('internal_only'),
+                )
+            )
+        ):
+            return
+        if 'error' in data:
+            if self.login_fail_msg in data['error']: # Check for login failure
+                self.disableAccount()
+            else:
+                log.error('%s returned an error (possible rate limit): %s', (self.getName(), data['error']))
+            return
 
-        if data:
-            if 'error' in data:
-                if self.login_fail_msg in data['error']: # Check for login failure
-                    self.disableAccount()
-                else:
-                    log.error('%s returned an error (possible rate limit): %s', (self.getName(), data['error']))
-                return
-
-            try:
+        try:
                 #for result in data[]:
-                for key, result in data.iteritems():
-                    if tryInt(result['total_results']) == 0:
-                        return
-                    torrentscore = self.conf('extra_score')
-                    releasegroup = result['releasegroup']
-                    resolution = result['resolution']
-                    encoding = result['encoding']
-                    freeleech = tryInt(result['freeleech'])
-                    seeders = tryInt(result['seeders'])
-                    torrent_desc = '/ %s / %s / %s / %s seeders' % (releasegroup, resolution, encoding, seeders)
+            for key, result in data.iteritems():
+                if tryInt(result['total_results']) == 0:
+                    return
+                torrentscore = self.conf('extra_score')
+                releasegroup = result['releasegroup']
+                resolution = result['resolution']
+                encoding = result['encoding']
+                freeleech = tryInt(result['freeleech'])
+                seeders = tryInt(result['seeders'])
+                torrent_desc = f'/ {releasegroup} / {resolution} / {encoding} / {seeders} seeders'
 
-                    if freeleech > 0 and self.conf('prefer_internal'):
-                        torrent_desc += '/ Internal'
-                        torrentscore += 200
+                if freeleech > 0 and self.conf('prefer_internal'):
+                    torrent_desc += '/ Internal'
+                    torrentscore += 200
 
-                    if seeders == 0:
-                        torrentscore = 0
+                if seeders == 0:
+                    torrentscore = 0
 
-                    name = result['release_name']
-                    year = tryInt(result['year'])
+                name = result['release_name']
+                year = tryInt(result['year'])
 
-                    results.append({
+                results.append(
+                    {
                         'id': tryInt(result['torrentid']),
-                        'name': re.sub('[^A-Za-z0-9\-_ \(\).]+', '', '%s (%s) %s' % (name, year, torrent_desc)),
-                        'url': self.urls['download'] % (result['torrentid'], result['torrentpass']),
+                        'name': re.sub(
+                            '[^A-Za-z0-9\-_ \(\).]+',
+                            '',
+                            f'{name} ({year}) {torrent_desc}',
+                        ),
+                        'url': self.urls['download']
+                        % (result['torrentid'], result['torrentpass']),
                         'detail_url': self.urls['detail'] % result['torrentid'],
                         'size': tryInt(result['size']),
                         'seeders': tryInt(result['seeders']),
                         'leechers': tryInt(result['leechers']),
                         'age': tryInt(result['age']),
-                        'score': torrentscore
-                    })
-            except:
-                log.error('Failed getting results from %s: %s', (self.getName(), traceback.format_exc()))
+                        'score': torrentscore,
+                    }
+                )
+        except:
+            log.error('Failed getting results from %s: %s', (self.getName(), traceback.format_exc()))
 config = [{
     'name': 'hd4free',
     'groups': [

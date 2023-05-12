@@ -28,9 +28,7 @@ class Base(TorrentProvider):
 
         url = self.urls['search'] % self.buildUrl(media, quality)
         cleaned_url = url.replace('%3A', '')
-        data = self.getHTMLData(cleaned_url)
-
-        if data:
+        if data := self.getHTMLData(cleaned_url):
             html = BeautifulSoup(data)
 
             try:

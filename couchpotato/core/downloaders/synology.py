@@ -53,7 +53,7 @@ class Synology(DownloaderBase):
                 log.info('Adding torrent URL %s', data['url'])
                 response = srpc.create_task(url = data['url'])
             elif data['protocol'] in ['nzb', 'torrent']:
-                log.info('Adding %s' % data['protocol'])
+                log.info(f"Adding {data['protocol']}")
                 if not filedata:
                     log.error('No %s data found', data['protocol'])
                 else:
@@ -107,8 +107,8 @@ class SynologyRPC(object):
 
         super(SynologyRPC, self).__init__()
 
-        self.download_url = 'http://%s:%s/webapi/DownloadStation/task.cgi' % (host, port)
-        self.auth_url = 'http://%s:%s/webapi/auth.cgi' % (host, port)
+        self.download_url = f'http://{host}:{port}/webapi/DownloadStation/task.cgi'
+        self.auth_url = f'http://{host}:{port}/webapi/auth.cgi'
         self.sid = None
         self.username = username
         self.password = password

@@ -79,7 +79,7 @@ class SoftChrootEnabledTest(TestCase):
         noslash = CHROOT_DIR[:-1]
         self.assertTrue( self.b.is_subdir(noslash) )
 
-        self.assertTrue( self.b.is_subdir(CHROOT_DIR + 'come') )
+        self.assertTrue(self.b.is_subdir(f'{CHROOT_DIR}come'))
 
     def test_is_root_abs_none(self):
         with self.assertRaises(ValueError):
@@ -92,7 +92,7 @@ class SoftChrootEnabledTest(TestCase):
         noslash = CHROOT_DIR[:-1]
         self.assertTrue( self.b.is_root_abs(noslash) )
 
-        self.assertFalse( self.b.is_root_abs(CHROOT_DIR + 'come') )
+        self.assertFalse(self.b.is_root_abs(f'{CHROOT_DIR}come'))
 
     def test_chroot2abs_noleading_slash(self):
         path = 'no_leading_slash'
@@ -105,14 +105,14 @@ class SoftChrootEnabledTest(TestCase):
         self.assertEqual( self.b.chroot2abs(None), CHROOT_DIR )
         self.assertEqual( self.b.chroot2abs(''), CHROOT_DIR )
 
-        self.assertEqual( self.b.chroot2abs('/asdf'), CHROOT_DIR + 'asdf' )
+        self.assertEqual(self.b.chroot2abs('/asdf'), f'{CHROOT_DIR}asdf')
 
     def test_abs2chroot_raise_on_empty(self):
         with self.assertRaises(ValueError): self.b.abs2chroot(None)
         with self.assertRaises(ValueError): self.b.abs2chroot('')
 
     def test_abs2chroot(self):
-        self.assertEqual( self.b.abs2chroot(CHROOT_DIR + 'asdf'), '/asdf' )
+        self.assertEqual(self.b.abs2chroot(f'{CHROOT_DIR}asdf'), '/asdf')
         self.assertEqual( self.b.abs2chroot(CHROOT_DIR), '/' )
         self.assertEqual( self.b.abs2chroot(CHROOT_DIR.rstrip(os.path.sep)), '/' )
 

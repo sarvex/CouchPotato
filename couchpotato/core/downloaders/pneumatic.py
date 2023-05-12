@@ -56,21 +56,15 @@ class Pneumatic(DownloaderBase):
                         nzb_name = self.createNzbName(data, media)
                         strm_path = os.path.join(directory, nzb_name)
 
-                        strm_file = open(strm_path + '.strm', 'wb')
-                        strmContent = self.strm_syntax % (full_path, nzb_name)
-                        strm_file.write(strmContent)
-                        strm_file.close()
-
-                        return self.downloadReturnId('')
-
+                        with open(f'{strm_path}.strm', 'wb') as strm_file:
+                            strmContent = self.strm_syntax % (full_path, nzb_name)
+                            strm_file.write(strmContent)
                     else:
                         log.info('File %s already exists.', full_path)
-                        return self.downloadReturnId('')
+                    return self.downloadReturnId('')
 
                 except:
                     log.error('Failed to download .strm: %s', traceback.format_exc())
-                    pass
-
             except:
                 log.info('Failed to download file %s: %s', (data.get('name'), traceback.format_exc()))
                 return False

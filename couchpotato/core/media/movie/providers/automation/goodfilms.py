@@ -45,13 +45,14 @@ class Goodfilms(Automation):
             if not this_watch_list:  # No Movies
                 break
 
-            for movie in this_watch_list:
-                movies.append({
+            movies.extend(
+                {
                     'title': movie['data-film-title'],
-                    'year': movie['data-film-year']
-                })
-
-            if not 'next page' in data.lower():
+                    'year': movie['data-film-year'],
+                }
+                for movie in this_watch_list
+            )
+            if 'next page' not in data.lower():
                 break
 
             page += 1

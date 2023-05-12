@@ -20,9 +20,7 @@ class Webhook(Notification):
         }
 
         if getIdentifier(data):
-            post_data.update({
-                'imdb_id': getIdentifier(data)
-            })
+            post_data['imdb_id'] = getIdentifier(data)
 
         headers = {
             'Content-type': 'application/x-www-form-urlencoded'

@@ -25,15 +25,19 @@ class Pushover(Notification):
         }
 
         if data and getIdentifier(data):
-            api_data.update({
-                'url': toUnicode('http://www.imdb.com/title/%s/' % getIdentifier(data)),
-                'url_title': toUnicode('%s on IMDb' % getTitle(data)),
-            })
+            api_data |= {
+                'url': toUnicode(
+                    f'http://www.imdb.com/title/{getIdentifier(data)}/'
+                ),
+                'url_title': toUnicode(f'{getTitle(data)} on IMDb'),
+            }
 
         try:
-            data = self.urlopen('%s/%s' % (self.api_url, '1/messages.json'),
-                headers = {'Content-type': 'application/x-www-form-urlencoded'},
-                data = api_data)
+            data = self.urlopen(
+                f'{self.api_url}/1/messages.json',
+                headers={'Content-type': 'application/x-www-form-urlencoded'},
+                data=api_data,
+            )
             log.info2('Pushover responded with: %s', data)
             return True
         except:

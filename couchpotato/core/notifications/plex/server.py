@@ -131,7 +131,7 @@ class PlexServer(object):
                 if section.get('type') not in section_types:
                     continue
 
-                self.request('library/sections/%s/refresh' % section.get('key'), 'text')
+                self.request(f"library/sections/{section.get('key')}/refresh", 'text')
         except:
             log.error('Plex library update failed for %s, Media Server not running: %s',
                       (self.plex.conf('media_server'), traceback.format_exc(1)))
@@ -146,6 +146,6 @@ class PlexServer(object):
         h = h.rstrip('/')
 
         if port and not p.port:
-            h += ':%s' % port
+            h += f':{port}'
 
         return h

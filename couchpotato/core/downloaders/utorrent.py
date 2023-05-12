@@ -122,13 +122,17 @@ class uTorrent(DownloaderBase):
         """
 
         if self.connect():
-            build_version = self.utorrent_api.get_build()
-            if not build_version:
+            if build_version := self.utorrent_api.get_build():
+                return (
+                    (
+                        False,
+                        'Your uTorrent client is too old, please update to newest version.',
+                    )
+                    if build_version < 25406
+                    else True
+                )
+            else:
                 return False
-            if build_version < 25406:  # This build corresponds to version 3.0.0 stable
-                return False, 'Your uTorrent client is too old, please update to newest version.'
-            return True
-
         return False
 
     def getAllDownloadStatus(self, ids):
@@ -181,7 +185,7 @@ class uTorrent(DownloaderBase):
                 elif torrent[4] == 1000:
                     status = 'completed'
 
-                if not status == 'busy':
+                if status != 'busy':
                     self.removeReadOnly(torrent_files)
 
                 release_downloads.append({
@@ -227,7 +231,7 @@ class uTorrentAPI(object):
 
         super(uTorrentAPI, self).__init__()
 
-        self.url = 'http://' + str(host) + ':' + str(port) + '/gui/'
+        self.url = f'http://{str(host)}:{str(port)}/gui/'
         self.token = ''
         self.last_time = time.time()
         cookies = cookielib.CookieJar()
@@ -245,11 +249,10 @@ class uTorrentAPI(object):
         if time.time() > self.last_time + 1800:
             self.last_time = time.time()
             self.token = self.get_token()
-        request = urllib2.Request(self.url + '?token=' + self.token + '&' + action, data)
+        request = urllib2.Request(f'{self.url}?token={self.token}&{action}', data)
         try:
             open_request = self.opener.open(request)
-            response = open_request.read()
-            if response:
+            if response := open_request.read():
                 return response
             else:
                 log.debug('Unknown failure sending command to uTorrent. Return text is: %s', response)
@@ -265,44 +268,43 @@ class uTorrentAPI(object):
         return False
 
     def get_token(self):
-        request = self.opener.open(self.url + 'token.html')
-        token = re.findall('<div.*?>(.*?)</', request.read())[0]
-        return token
+        request = self.opener.open(f'{self.url}token.html')
+        return re.findall('<div.*?>(.*?)</', request.read())[0]
 
     def add_torrent_uri(self, filename, torrent, add_folder = False):
-        action = 'action=add-url&s=%s' % urllib.quote(torrent)
+        action = f'action=add-url&s={urllib.quote(torrent)}'
         if add_folder:
-            action += '&path=%s' % urllib.quote(filename)
+            action += f'&path={urllib.quote(filename)}'
         return self._request(action)
 
     def add_torrent_file(self, filename, filedata, add_folder = False):
         action = 'action=add-file'
         if add_folder:
-            action += '&path=%s' % urllib.quote(filename)
+            action += f'&path={urllib.quote(filename)}'
         return self._request(action, {'torrent_file': (ss(filename), filedata)})
 
     def set_torrent(self, hash, params):
-        action = 'action=setprops&hash=%s' % hash
+        action = f'action=setprops&hash={hash}'
         for k, v in params.items():
-            action += '&s=%s&v=%s' % (k, v)
+            action += f'&s={k}&v={v}'
         return self._request(action)
 
     def pause_torrent(self, hash, pause = True):
         if pause:
-            action = 'action=pause&hash=%s' % hash
+            action = f'action=pause&hash={hash}'
         else:
-            action = 'action=unpause&hash=%s' % hash
+            action = f'action=unpause&hash={hash}'
         return self._request(action)
 
     def stop_torrent(self, hash):
-        action = 'action=stop&hash=%s' % hash
+        action = f'action=stop&hash={hash}'
         return self._request(action)
 
     def remove_torrent(self, hash, remove_data = False):
         if remove_data:
-            action = 'action=removedata&hash=%s' % hash
+            action = f'action=removedata&hash={hash}'
         else:
-            action = 'action=remove&hash=%s' % hash
+            action = f'action=remove&hash={hash}'
         return self._request(action)
 
     def get_status(self):
@@ -318,13 +320,15 @@ class uTorrentAPI(object):
             # Create settings dict
             for setting in utorrent_settings['settings']:
                 if setting[1] == 0: # int
-                    settings_dict[setting[0]] = int(setting[2] if not setting[2].strip() == '' else '0')
+                    settings_dict[setting[0]] = int(
+                        setting[2] if setting[2].strip() != '' else '0'
+                    )
                 elif setting[1] == 1: # bool
-                    settings_dict[setting[0]] = True if setting[2] == 'true' else False
+                    settings_dict[setting[0]] = setting[2] == 'true'
                 elif setting[1] == 2: # string
                     settings_dict[setting[0]] = setting[2]
 
-            #log.debug('uTorrent settings: %s', settings_dict)
+                #log.debug('uTorrent settings: %s', settings_dict)
 
         except Exception as err:
             log.error('Failed to get settings from uTorrent: %s', err)
@@ -338,11 +342,13 @@ class uTorrentAPI(object):
             if isinstance(settings_dict[key], bool):
                 settings_dict[key] = 1 if settings_dict[key] else 0
 
-        action = 'action=setsetting' + ''.join(['&s=%s&v=%s' % (key, value) for (key, value) in settings_dict.items()])
+        action = 'action=setsetting' + ''.join(
+            [f'&s={key}&v={value}' for (key, value) in settings_dict.items()]
+        )
         return self._request(action)
 
     def get_files(self, hash):
-        action = 'action=getfiles&hash=%s' % hash
+        action = f'action=getfiles&hash={hash}'
         return self._request(action)
 
     def get_build(self):

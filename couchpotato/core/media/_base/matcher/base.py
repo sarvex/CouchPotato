@@ -11,7 +11,7 @@ class MatcherBase(Plugin):
 
     def __init__(self):
         if self.type:
-            addEvent('%s.matcher.correct' % self.type, self.correct)
+            addEvent(f'{self.type}.matcher.correct', self.correct)
 
     def correct(self, chain, release, media, quality):
         raise NotImplementedError()
@@ -73,12 +73,12 @@ class MatcherBase(Plugin):
         for tag, accepted in tags.items():
             values = [self.simplifyValue(x) for x in info.get(tag, [None])]
 
-            if any([val in accepted for val in values]):
+            if any(val in accepted for val in values):
                 found_tags.append(tag)
 
-        log.debug('tags found: %s, required: %s' % (found_tags, tags.keys()))
+        log.debug(f'tags found: {found_tags}, required: {tags.keys()}')
 
         if set(tags.keys()) == set(found_tags):
             return True
 
-        return all([key in found_tags for key, value in tags.items()])
+        return all(key in found_tags for key, value in tags.items())

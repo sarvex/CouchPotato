@@ -11,14 +11,11 @@ class RSS(object):
     def getTextElements(self, xml, path):
         """ Find elements and return tree"""
 
-        textelements = []
         try:
             elements = xml.findall(path)
         except:
             return
-        for element in elements:
-            textelements.append(element.text)
-        return textelements
+        return [element.text for element in elements]
 
     def getElements(self, xml, path):
 

@@ -35,14 +35,13 @@ class TorrentProvider(YarrProvider):
 
     def getDomain(self, url = ''):
 
-        forced_domain = self.conf('domain')
-        if forced_domain:
+        if forced_domain := self.conf('domain'):
             return cleanHost(forced_domain).rstrip('/') + url
 
         if not self.proxy_domain:
             for proxy in self.proxy_list:
 
-                prop_name = 'proxy.%s' % proxy
+                prop_name = f'proxy.{proxy}'
                 last_check = float(Env.prop(prop_name, default = 0))
 
                 if last_check > time.time() - 86400:

@@ -22,7 +22,7 @@ class TraktBase(Provider):
     def call(self, method_url, post_data = None):
         headers = {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer %s' % self.conf('automation_oauth_token'),
+            'Authorization': f"Bearer {self.conf('automation_oauth_token')}",
             'trakt-api-version': 2,
             'trakt-api-key': self.client_id,
         }
@@ -55,26 +55,27 @@ class Trakt(Automation, TraktBase):
 
         token = self.conf('automation_oauth_token')
         refresh_token = self.conf('automation_oauth_refresh')
-        if token and refresh_token:
+        if token:
+            if refresh_token:
 
-            prop_name = 'last_trakt_refresh'
-            last_refresh = int(Env.prop(prop_name, default = 0))
+                prop_name = 'last_trakt_refresh'
+                last_refresh = int(Env.prop(prop_name, default = 0))
 
-            if last_refresh < time.time()-4838400:  # refresh every 8 weeks
-                log.debug('Refreshing trakt token')
+                if last_refresh < time.time()-4838400:  # refresh every 8 weeks
+                    log.debug('Refreshing trakt token')
 
-                url = self.urls['refresh_token'] + '?token=' + self.conf('automation_oauth_refresh')
-                data = fireEvent('cp.api_call', url, cache_timeout = 0, single = True)
-                if data and 'oauth' in data and 'refresh' in data:
-                    log.debug('Oauth refresh: %s', data)
-                    self.conf('automation_oauth_token', value = data.get('oauth'))
-                    self.conf('automation_oauth_refresh', value = data.get('refresh'))
-                    Env.prop(prop_name, value = int(time.time()))
-                else:
-                    log.error('Failed refreshing Trakt token, please re-register in settings')
+                    url = self.urls['refresh_token'] + '?token=' + self.conf('automation_oauth_refresh')
+                    data = fireEvent('cp.api_call', url, cache_timeout = 0, single = True)
+                    if data and 'oauth' in data and 'refresh' in data:
+                        log.debug('Oauth refresh: %s', data)
+                        self.conf('automation_oauth_token', value = data.get('oauth'))
+                        self.conf('automation_oauth_refresh', value = data.get('refresh'))
+                        Env.prop(prop_name, value = int(time.time()))
+                    else:
+                        log.error('Failed refreshing Trakt token, please re-register in settings')
 
-        elif token and not refresh_token:
-            log.error('Refresh token is missing, please re-register Trakt for autorefresh of the token in the future')
+            else:
+                log.error('Refresh token is missing, please re-register Trakt for autorefresh of the token in the future')
 
     def getIMDBids(self):
         movies = []
@@ -93,7 +94,7 @@ class Trakt(Automation, TraktBase):
         return self.call(self.urls['watchlist'])
 
     def getAuthorizationUrl(self, host = None, **kwargs):
-        callback_url = cleanHost(host) + '%sautomation.trakt.credentials/' % (Env.get('api_base').lstrip('/'))
+        callback_url = f"{cleanHost(host)}{Env.get('api_base').lstrip('/')}automation.trakt.credentials/"
         log.debug('callback_url is %s', callback_url)
 
         target_url = self.urls['oauth'] + "?target=" + callback_url

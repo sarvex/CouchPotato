@@ -13,15 +13,16 @@ autoload = 'BinSearch'
 class BinSearch(MovieProvider, Base):
 
     def buildUrl(self, media, quality):
-        query = tryUrlencode({
-            'q': getIdentifier(media),
-            'm': 'n',
-            'max': 400,
-            'adv_age': Env.setting('retention', 'nzb'),
-            'adv_sort': 'date',
-            'adv_col': 'on',
-            'adv_nfo': 'on',
-            'xminsize': quality.get('size_min'),
-            'xmaxsize': quality.get('size_max'),
-        })
-        return query
+        return tryUrlencode(
+            {
+                'q': getIdentifier(media),
+                'm': 'n',
+                'max': 400,
+                'adv_age': Env.setting('retention', 'nzb'),
+                'adv_sort': 'date',
+                'adv_col': 'on',
+                'adv_nfo': 'on',
+                'xminsize': quality.get('size_min'),
+                'xmaxsize': quality.get('size_max'),
+            }
+        )

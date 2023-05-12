@@ -69,7 +69,7 @@ class ProfilePlugin(Plugin):
                 if '' in profile.get('qualities') or '-1' in profile.get('qualities'):
                     log.warning('Found profile with empty qualities, cleaning it up')
                     p = db.get('id', profile.get('_id'))
-                    p['qualities'] = [x for x in p['qualities'] if (x != '' and x != '-1')]
+                    p['qualities'] = [x for x in p['qualities'] if x not in ['', '-1']]
                     db.update(p)
             except:
                 log.error('Failed: %s', traceback.format_exc())
@@ -106,16 +106,12 @@ class ProfilePlugin(Plugin):
                 '3d': []
             }
 
-            # Update types
-            order = 0
-            for type in kwargs.get('types', []):
+            for order, type in enumerate(kwargs.get('types', [])):
                 profile['qualities'].append(type.get('quality'))
                 profile['wait_for'].append(tryInt(kwargs.get('wait_for', 0)))
                 profile['stop_after'].append(tryInt(kwargs.get('stop_after', 0)))
                 profile['finish'].append((tryInt(type.get('finish')) == 1) if order > 0 else True)
                 profile['3d'].append(tryInt(type.get('3d')))
-                order += 1
-
             id = kwargs.get('id')
             try:
                 p = db.get('id', id)
@@ -146,15 +142,11 @@ class ProfilePlugin(Plugin):
         try:
             db = get_db()
 
-            order = 0
-
-            for profile_id in kwargs.get('ids', []):
+            for order, profile_id in enumerate(kwargs.get('ids', [])):
                 p = db.get('id', profile_id)
                 p['hide'] = tryInt(kwargs.get('hidden')[order]) == 1
                 p['order'] = order
                 db.update(p)
-
-                order += 1
 
             return {
                 'success': True
@@ -223,9 +215,7 @@ class ProfilePlugin(Plugin):
                 'qualities': ['720p', '1080p', '2160p']
             }]
 
-            # Create default quality profile
-            order = 0
-            for profile in profiles:
+            for order, profile in enumerate(profiles):
                 log.info('Creating default profile: %s', profile.get('label'))
 
                 pro = {
@@ -241,15 +231,13 @@ class ProfilePlugin(Plugin):
                 }
 
                 threed = profile.get('3d', [])
-                for q in profile.get('qualities'):
+                for _ in profile.get('qualities'):
                     pro['finish'].append(True)
                     pro['wait_for'].append(0)
                     pro['stop_after'].append(0)
                     pro['3d'].append(threed.pop() if threed else False)
 
                 db.insert(pro)
-                order += 1
-
             return True
         except:
             log.error('Failed: %s', traceback.format_exc())

@@ -16,8 +16,9 @@ class BiTHDTV(MovieProvider, Base):
     cat_backup_id = 7 # Movies
 
     def buildUrl(self, media, quality):
-        query = tryUrlencode({
-            'search': fireEvent('library.query', media, single = True),
-            'cat': self.getCatId(quality)[0]
-        })
-        return query
+        return tryUrlencode(
+            {
+                'search': fireEvent('library.query', media, single=True),
+                'cat': self.getCatId(quality)[0],
+            }
+        )
